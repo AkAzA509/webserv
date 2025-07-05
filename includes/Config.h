@@ -11,8 +11,6 @@
 
 #define USAGE "Usage: ./webserv <configuration file>.dlq"
 
-
-
 class Config
 {
 	private:

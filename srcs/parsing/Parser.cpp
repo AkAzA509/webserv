@@ -7,9 +7,26 @@ Parser::Parser()
 	#endif
 }
 
+Parser::~Parser()
+{
+	#if DEBUG
+		std::cout << "Parser destruction" << std::endl;
+	#endif
+}
+
+std::vector<Token> Parser::tokenise(const std::ifstream& infile)
+{
+	(void)infile;
+	std::vector<Token> tokens;
+	return tokens;
+}
+
 std::vector<Server> Parser::parse(std::ifstream& infile)
 {
 	std::vector<Server> servers;
+	std::vector<Token> tokens;
+
+	tokens = tokenise(infile);
 
 	std::string line;
 	while (std::getline(infile, line))
@@ -17,7 +34,6 @@ std::vector<Server> Parser::parse(std::ifstream& infile)
 		size_t pos;
 		if ((pos = line.find("#")) != std::string::npos)
 			line.erase(pos);
-		std::cout << line << std::endl;
 	}
 	return servers;
 }
