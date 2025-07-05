@@ -19,12 +19,16 @@
 #include <fcntl.h>
 #include <signal.h>
 
+extern volatile sig_atomic_t stop;
+
 #define HEADER "HTTP/1.1 200 OK\r\n"
+#define ERROR_404 "HTTP/1.1 404 Not Found\r\n"
+#define ERROR_400 "HTTP/1.1 400 Bad request\r\n"
+
 #define CONTENT_TYPE "Content-Type: "
 #define CONTENT_LENGHT "Content-Length: "
 #define RETURN "\r\n"
 #define CONNECTION_CLOSE "Connection: close\r\n"
-#define ERROR_404 "HTTP/1.1 404 Not Found\r\n"
 
 struct Location
 {
@@ -41,6 +45,7 @@ class Server
 		int m_socketFD[1024];
 	public:
 		Server();
+		~Server();
 		std::vector<int> port;
 		std::string serverName;
 		std::string root;
@@ -49,9 +54,15 @@ class Server
 		std::vector<Location> locations;
 		void setupSocket();
 		void waitConnection();
-		void clean();
 };
 
+// Utils
+
 void print_error(const std::string& str, int *fd);
+std::string loadFile(const std::string& path);
+
+// Signaux
+
+void sigint_handler(int);
 
 // changer le port de std::string a vector ou container pour gerer l'ecoute sur plusieurs port

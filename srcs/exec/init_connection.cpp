@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/02 10:21:09 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/03 17:51:14 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/04 10:37:02 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,32 +14,7 @@
 #include "../../includes/Config.h"
 #include "../../includes/Parser.h"
 
-volatile sig_atomic_t stop = 0;
-
-void sigint_handler(int) {
-	stop = 1;
-}
-
-std::string loadWebsite(const std::string& path) {
-	if (path.empty() || access(path.c_str(), F_OK | R_OK) < 0)
-		return "";
-
-	int fd = open(path.c_str(), O_RDONLY);
-
-	if (fd < 0) {
-		perror("open");
-		return "";
-	}
-	std::string content;
-	char buffer[4096];
-	ssize_t bytesRead;
-	while ((bytesRead = read(fd, buffer, sizeof(buffer))) > 0)
-		content.append(buffer, bytesRead);
-	if (bytesRead < 0)
-		perror("read");
-	close(fd);
-	return content;
-}
+volatile sig_atomic_t stop = 0; // a mettre dans le main
 
 void Server::waitConnection() {
 	while (stop != 1) {
@@ -72,10 +47,10 @@ void Server::waitConnection() {
 		std::string type;
 		char bite[20];
 		
-		std::string website = loadWebsite("../../index.html");
+		std::string website = loadFile("../../index.html");
 		if (website.empty())
-		website = loadWebsite("../../error_404.html");
-		std::string css = loadWebsite("../../style.css");
+		website = loadFile("../../error_404.html");
+		std::string css = loadFile("../../style.css");
 
 		if (cmp.find("GET /style.css") != std::string::npos) {
 			to_send = css;
@@ -102,12 +77,6 @@ void Server::waitConnection() {
 	}
 }
 
-void print_error(const std::string& str, int *fd) {
-	for (size_t i = 0; fd[i] != -1; i++)
-		close(fd[i]);
-	throw std::runtime_error(str);
-}
-
 void Server::setupSocket() {
 	int opt = 1, i = 0;
 
@@ -125,26 +94,13 @@ void Server::setupSocket() {
 		addr.sin_addr.s_addr = INADDR_ANY;
 
 		if (bind(sokFd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-			perror("bind =");
+			perror("bind");
 			print_error("binding fail", m_socketFD);
 		}
 		if (listen(sokFd, SOMAXCONN) < 0)
 			print_error("listening", m_socketFD);
 
 		m_socketFD[i] = sokFd;
-	}
-}
-
-Server::Server() {
-	for (size_t i = 0; i < 1024; i++)
-		m_socketFD[i] = -1;
-	port.push_back(8080);
-}
-
-void Server::clean() {
-	for (size_t i = 0; i < 1024; i++) {
-		if (m_socketFD[i] != -1)
-			close(m_socketFD[i]);
 	}
 }
 
@@ -160,7 +116,6 @@ int main(void) {
 	{
 		std::cerr << e.what() << '\n';
 	}
-	test->clean();
 	delete test;
 	return 0;
 }
