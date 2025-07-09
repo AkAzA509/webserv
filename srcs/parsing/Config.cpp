@@ -1,9 +1,22 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Config.cpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
+/*   Updated: 2025/07/09 15:56:57 by macorso          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Config.h"
+#include "Logger.h"
 
 Config::~Config()
 {
 	#if DEBUG
-		std::cout << "Config destruction" << std::endl;
+		Logger::log(GREEN, "Config destruction");
 	#endif
 }
 
@@ -24,7 +37,7 @@ void Config::parseConfigFile()
 Config::Config(int ac, char **av) : m_ArgCount(ac), m_FileName(av[1] ? av[1] : std::string())
 {
 	#if DEBUG
-		std::cout << "Config creation" << std::endl;
+		Logger::log(GREEN, "Config creation");
 	#endif
 
 	try
@@ -33,7 +46,7 @@ Config::Config(int ac, char **av) : m_ArgCount(ac), m_FileName(av[1] ? av[1] : s
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << "Error: " << e.what() << std::endl;
+		Logger::log(RED, "Error: %s", e.what());
 	}
 	
 }

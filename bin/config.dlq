@@ -1,59 +1,34 @@
-caca# Default Server
-server {
-    listen 127.0.0.1:8080;
-    server_name localhost;
-    root ./www;
-    index index.html index.htm;
+server{
+	listen 8002;
+	server_name localhost;
+	host 127.0.0.1;
+	root docs/fusion_web/;
+	# client_max_body_size 3000000;
+	index index.html;
+	error_page 404 error_pages/404.html;
 
-    error_page 404 /errors/404.html;
-    error_page 500 /errors/500.html;
+	location / {
+		allow_methods  DELETE POST GET;
+		autoindex off;
+	}
+	
+	location /tours {
+		autoindex on;
+		index tours1.html;
+		allow_methods GET POST PUT HEAD;
+	}
 
-    location / {
-        allowed_methods GET POST;
-        autoindex on;
-    }
+	location /red {
+		return /tours;
+	}
 
-    location /images {
-        root ./www/images;
-        allowed_methods GET;
-        autoindex off;
-    }
-
-    location /upload {
-        root ./uploads;
-        allowed_methods POST DELETE;
-    }
-
-    location /cgi-bin {
-        cgi_pass /usr/bin/python3;
-        allowed_methods GET POST;
-    }
+	location /cgi-bin {
+		root ./;
+		allow_methods GET POST DELETE;
+		index time.py;
+		cgi_path /usr/bin/python3 /bin/bash;
+		cgi_ext .py .sh;
+	}
 }
 
-# Second Server
-server {
-    listen 0.0.0.0:8081;
-    server_name mysite.local;
 
-    root ./mysite;
-    index index.php index.html;
-
-    error_page 403 /errors/403.html;
-    error_page 404 /errors/404.html;
-
-    location / {
-        allowed_methods GET;
-        autoindex off;
-    }
-
-    location /admin {
-        root ./mysite/admin;
-        allowed_methods GET POST DELETE;
-        autoindex off;
-    }
-
-    location /cgi-bin {
-        cgi_pass /usr/bin/php;
-        allowed_methods GET POST;
-    }
-}

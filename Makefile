@@ -1,6 +1,7 @@
 ### COMPILATION OPTIONS ###
 CXX       = c++
 CXXFLAGS  = -Wall -Wextra -Werror -std=c++98
+CXXFLAGSDEV  = -Wall -Wextra -Werror -std=c++98 -fsanitize=address,leak
 LDFLAGS   = -Iincludes
 
 ### DIRECTORIES ###
@@ -16,7 +17,8 @@ TARGETDEV = $(BIN_DIR)/webserv_debug
 SRCS      = $(SRC_DIR)/main.cpp \
             $(SRC_DIR)/parsing/Config.cpp \
             $(SRC_DIR)/parsing/Parser.cpp \
-            $(SRC_DIR)/parsing/Server.cpp
+            $(SRC_DIR)/parsing/Server.cpp \
+			$(SRC_DIR)/parsing/Logger.cpp
 
 OBJS      = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/prod/%.o, $(SRCS))
 OBJSDEV   = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/dev/%.o, $(SRCS))
@@ -32,33 +34,32 @@ RESET     = \033[0m
 ### RULES ###
 
 all: $(TARGET)
-	@echo "$(GREEN)✔ Production build done!$(RESET)"
 
 dev: $(TARGETDEV)
-	@echo "$(BLUE)✔ Development build with DEBUG done!$(RESET)"
 
 $(TARGET): $(OBJS)
 	@mkdir -p $(BIN_DIR)
 	@echo "$(PURPLE)→ Linking production binary...$(RESET)"
 	@$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
+	@echo "$(GREEN)✔ Production build done!$(RESET)"
 
 $(TARGETDEV): $(OBJSDEV)
 	@mkdir -p $(BIN_DIR)
 	@echo "$(PURPLE)→ Linking development binary...$(RESET)"
-	@$(CXX) $(CXXFLAGS) $(LDFLAGS) -DDEBUG -o $@ $^
+	@$(CXX) $(CXXFLAGSDEV) $(LDFLAGS) -DDEBUG -o $@ $^
+	@echo "$(BLUE)✔ Development build with DEBUG done!$(RESET)"
 
 # Compile production objects
 $(OBJ_DIR)/prod/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	@echo -ne "\r🛠️ $(YELLOW) [PROD] Compiling $< → $@"
-	
 	@$(CXX) $(CXXFLAGS) $(LDFLAGS) -c $< -o $@
 
 # Compile development objects
 $(OBJ_DIR)/dev/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
 	@echo -ne "\r🛠️  $(YELLOW) [DEV] Compiling $< → $@"
-	@$(CXX) $(CXXFLAGS) $(LDFLAGS) -DDEBUG -c $< -o $@
+	@$(CXX) $(CXXFLAGSDEV) $(LDFLAGS) -DDEBUG -c $< -o $@
 
 clean:
 	@echo "$(RED)🧹 Cleaning object files...$(RESET)"
