@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/09 15:56:57 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/10 13:31:21 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 Config::~Config()
 {
 	#if DEBUG
-		Logger::log(GREEN, "Config destruction");
+		Logger::log(LIGHTMAGENTA, "Config destruction");
 	#endif
 }
 
@@ -37,7 +37,7 @@ void Config::parseConfigFile()
 Config::Config(int ac, char **av) : m_ArgCount(ac), m_FileName(av[1] ? av[1] : std::string())
 {
 	#if DEBUG
-		Logger::log(GREEN, "Config creation");
+		Logger::log(LIGHTMAGENTA, "Config creation");
 	#endif
 
 	try

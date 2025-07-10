@@ -30,5 +30,3 @@ server{
 		cgi_ext .py .sh;
 	}
 }
-
-

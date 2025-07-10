@@ -21,6 +21,8 @@
 
 extern volatile sig_atomic_t stop;
 
+#define DEFAULT_CLIENT_MAX_BODY_SIZE 1_000_000  
+
 #define HEADER "HTTP/1.1 200 OK\r\n"
 #define ERROR_404 "HTTP/1.1 404 Not Found\r\n"
 #define ERROR_400 "HTTP/1.1 400 Bad request\r\n"
@@ -43,17 +45,23 @@ class Server
 {
 	private:
 		int m_socketFD[1024];
+		std::vector<int> m_port;
+		std::string m_serverName;
+		std::string m_root;
+		std::vector<std::string> m_indexFiles;
+		std::map<int, std::string> m_errorPages;
+		std::vector<Location> m_locations;
 	public:
 		Server();
 		~Server();
-		std::vector<int> port;
-		std::string serverName;
-		std::string root;
-		std::vector<std::string> indexFiles;
-		std::map<int, std::string> errorPages;
-		std::vector<Location> locations;
 		void setupSocket();
 		void waitConnection();
+		void addPort(int port);
+		void removePort(int idx);
+		std::vector<int> getPorts();
+		int getPort(int idx);
+		inline std::string getServerName() { return m_serverName; }
+		void setServerName(const std::string& name);
 };
 
 // Utils

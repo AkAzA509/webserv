@@ -6,11 +6,12 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/09 20:01:50 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/10 17:16:42 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Parser.h"
+#include "Logger.h"
 
 Parser::Parser()
 {
@@ -26,54 +27,48 @@ Parser::~Parser()
 	#endif
 }
 
-size_t Parser::findServerEnd(size_t endPos, const std::string& fileData) const
+size_t Parser::findServerEnd(size_t startPos, const std::string& fileData) const
 {
-	size_t	i;
-	size_t	scope;
-
-	std::cout << fileData << std::endl;
+	size_t scope = 0;
+	const size_t len = fileData.length();
 	
-	scope = 0;
-	for (i = endPos + 1; fileData[i]; i++)
+	for (size_t i = startPos + 1; i < len; i++)
 	{
-		std::cout << i << std::endl;
-		if (i > 580)
-			std::cout << fileData[i] << std::endl;
 		if (fileData[i] == '{')
 			scope++;
-		if (fileData[i] == '}')
+		else if (fileData[i] == '}')
 		{
-			if (!scope)
-				return (i);
+			if (scope == 0)
+				return i;
 			scope--;
 		}
 	}
-	return endPos;
+	throw std::runtime_error("Unclosed server block");
 }
 
 size_t Parser::findServerStart(size_t startPos, const std::string& fileData) const
 {
 	size_t i = startPos;
+	const size_t len = fileData.length();
 
-	while (fileData[i])
-	{
-		if (fileData[i] == 's')
-			break;
-		if (!isspace(fileData[i]))
-			throw std::runtime_error("Out of scope a");
-			// throw std::runtime_error("Out of scope Character");
-	}
-	if (!fileData[i])
-		return startPos;
-	if (fileData.compare(i, 6, "server") != 0)
-		throw std::runtime_error("Out of scope b");
-	i += 6;
-	while (fileData[i] && isspace(fileData[i]))
+	while (i < len && isspace(fileData[i]))
 		i++;
-	if (fileData[i] == '{')
-		return i;
-	else 
-		throw std::runtime_error("Out of scope c");
+
+	if (i >= len)
+		return len;
+
+	if (fileData.compare(i, 6, "server") != 0)
+		throw std::runtime_error("Expected 'server' directive");
+
+	i += 6;
+
+	while (i < len && isspace(fileData[i]))
+		i++;
+
+	if (i >= len || fileData[i] != '{')
+		throw std::runtime_error("Expected '{' after server directive");
+
+	return i;
 }
 
 void Parser::removeComments(std::string& fileData) const
@@ -103,38 +98,64 @@ void Parser::removeWhiteSpaces(std::string& str) const
 	str = str.substr(0, i + 1);
 }
 
-std::vector<Server> Parser::makeServers(const std::string& fileData) const
+std::vector<std::string> split(const std::string& str, const std::string& sep)
 {
-	std::vector<Server> servers;
+	std::vector<std::string> res;
+	
+	if (sep.empty())
+	{
+		if (!str.empty())
+			res.push_back(str);
+		return res;
+	}
+	
+	size_t start = 0;
 
-	// std::cout << fileData << std::endl;
+	for (size_t end = str.find(sep, start); end != std::string::npos; end = str.find(sep, start))
+	{
+		if (start < end)
+			res.push_back(str.substr(start, end - start));
+		start = end + sep.length();
+	}
 
+	if (start < str.length())
+		res.push_back(str.substr(start));
+	return res;
+}
+
+Server Parser::parseServer(const std::string& data) const
+{
+	std::vector<std::string> param = split(data + ' ', "\n\t");
+
+	
+	return Server();
+}
+
+void Parser::makeServers(const std::string& fileData)
+{
 	if (fileData.find("server", 0))
 		throw std::runtime_error("Didn't find server");
 	
-	size_t start = 0;
-	size_t end = 1;
+	
+	size_t pos = 0;
+	const size_t len = fileData.length();
 
-	while (start != end && start < fileData.length())
+	while (pos < len)
 	{
-		start = findServerStart(start, fileData);
-		end = findServerEnd(end, fileData);
-
-		if (start == end)
-			throw std::runtime_error("Scope of a keyword");
-		start = end + 1;
-		// std::cout << fileData.substr(start, end - start) << std::endl;
-		// servers.push_back(parseServer(fileData.substr(start, end - start)));
+		size_t start = findServerStart(pos, fileData);
+		size_t end = findServerEnd(start, fileData);
+		
+		if (start >= end)
+			throw std::runtime_error("Invalid server block scope");
+		
+		m_Servers.push_back(parseServer(fileData.substr(start, end - start + 1)));
+		pos = end + 1;
 	}
-	return servers;
 }
 
 std::vector<Server> Parser::parse(std::ifstream& infile)
 {
-	
-	std::vector<Server> servers;
 	std::stringstream ss;
-
 	ss << infile.rdbuf();
 
 	std::string fileData = ss.str();
@@ -142,7 +163,7 @@ std::vector<Server> Parser::parse(std::ifstream& infile)
 	removeComments(fileData);
 	removeWhiteSpaces(fileData);
 	
-	servers = makeServers(fileData);
+	makeServers(fileData);
 	#if DEBUG
 		// for (std::vector<Server>::iterator it = servers.begin(); it != servers.end(); ++it)
 		// {
@@ -150,5 +171,5 @@ std::vector<Server> Parser::parse(std::ifstream& infile)
 		// }
 	#endif
 
-	return servers;
+	return this->m_Servers;
 }
