@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/10 17:16:42 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/11 13:17:28 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -125,6 +125,7 @@ std::vector<std::string> split(const std::string& str, const std::string& sep)
 
 Server Parser::parseServer(const std::string& data) const
 {
+	std::cout << data << std::endl;
 	std::vector<std::string> param = split(data + ' ', "\n\t");
 
 	

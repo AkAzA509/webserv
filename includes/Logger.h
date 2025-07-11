@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:24:48 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/09 15:57:55 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/11 13:17:57 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <cstdio>
+#include <cstdarg>
 
 #define RESET          "\x1B[0m"
 #define RED            "\x1B[31m"

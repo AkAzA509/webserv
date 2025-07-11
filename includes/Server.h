@@ -56,12 +56,25 @@ class Server
 		~Server();
 		void setupSocket();
 		void waitConnection();
+	public:
+		std::vector<int> getPorts() const;
+		int getPort(size_t idx) const;
 		void addPort(int port);
-		void removePort(int idx);
-		std::vector<int> getPorts();
-		int getPort(int idx);
-		inline std::string getServerName() { return m_serverName; }
+		void removePort(size_t idx);
+		inline std::string getServerName() const { return m_serverName; }
 		void setServerName(const std::string& name);
+		inline std::string getRoot() const { return m_root; }
+		void setRoot(const std::string& root);
+		inline std::vector<std::string> getIndexFiles() const { return m_indexFiles; }
+		std::string getIndexFile(size_t idx) const;
+		void addIndexFile(const std::string& file);
+		void removeIndexFile(size_t idx);
+		inline std::map<int, std::string> getErrorPages() const { return m_errorPages; }
+		std::string getErrorPage(int page) const;
+		void addErrorPage(int page, const std::string& path);
+		void addLocation(Location& loc);
+		void removeLocation(size_t idx);
+
 };
 
 // Utils
