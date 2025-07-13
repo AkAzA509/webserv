@@ -32,21 +32,43 @@ extern volatile sig_atomic_t stop;
 #define RETURN "\r\n"
 #define CONNECTION_CLOSE "Connection: close\r\n"
 
-struct Location
+class Location
 {
-	std::string path;
-	std::string root;
-	std::map<std::string, void (*)(Request&, Response&)> allowed_methods;
-	bool autoIndex;
-	std::string cgi_pass;
+	private:
+		std::string m_path;
+		std::string m_redirection_path;
+		std::vector<std::string> m_indexFiles;
+		std::string m_root;
+		std::map<std::string, void (*)(Request&, Response&)> m_allowed_methods;
+		bool m_autoIndex;
+		std::string m_cgi_path;
+	public:
+		Location();
+		Location(const std::string& path);
+		~Location();
+		inline std::string getPath() const { return m_path; }
+		inline std::string getRedirectionPath() const { return m_redirection_path; }
+		inline std::vector<std::string> getIndexFiles() const { return m_indexFiles; }
+		inline std::string getRoot() const { return m_root; }
+		inline std::map<std::string, void (*)(Request&, Response&)> getAllowedMethods() const { return m_allowed_methods; }
+		inline bool isAutoIndexOn() const { return m_autoIndex; }
+		inline std::string getCgiPath() const { return m_cgi_path; }
+		void setPath(const std::string& path) { m_path = path; }
+		void setRedirectionPath(const std::string& path) { m_redirection_path = path; }
+		void addIndexFile(const std::string& indexFile) { m_indexFiles.push_back(indexFile); }
+		void setRoot(const std::string& root) { m_root = root; }
+		void addAllowedMethod(const std::string& methodName, void (*method)(Request&, Response&)) { m_allowed_methods[methodName] = method; }
+		void setAutoIndexOn(bool on) { m_autoIndex = on; }
+		void setCgiPath(const std::string& path) { m_cgi_path = path; }
 };
 
 class Server
 {
 	private:
 		int m_socketFD[1024];
-		std::vector<int> m_port;
+		std::vector<size_t> m_port;
 		std::string m_serverName;
+		std::string m_hostIp;
 		std::string m_root;
 		std::vector<std::string> m_indexFiles;
 		std::map<int, std::string> m_errorPages;
@@ -57,12 +79,14 @@ class Server
 		void setupSocket();
 		void waitConnection();
 	public:
-		std::vector<int> getPorts() const;
-		int getPort(size_t idx) const;
-		void addPort(int port);
+		std::vector<size_t> getPorts() const;
+		size_t getPort(size_t idx) const;
+		void addPort(size_t port);
 		void removePort(size_t idx);
 		inline std::string getServerName() const { return m_serverName; }
 		void setServerName(const std::string& name);
+		void setHostIp(const std::string& ip);
+		inline std::string getHostIp() const { return m_hostIp; }
 		inline std::string getRoot() const { return m_root; }
 		void setRoot(const std::string& root);
 		inline std::vector<std::string> getIndexFiles() const { return m_indexFiles; }
@@ -74,7 +98,8 @@ class Server
 		void addErrorPage(int page, const std::string& path);
 		void addLocation(Location& loc);
 		void removeLocation(size_t idx);
-
+		void addSocket(int idx, int socket);
+		void removeSocket(int idx);
 };
 
 // Utils

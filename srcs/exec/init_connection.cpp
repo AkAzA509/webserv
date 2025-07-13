@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/02 10:21:09 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/05 14:01:28 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/13 17:31:23 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,7 +49,7 @@ void Server::waitConnection() {
 		
 		std::string website = loadFile("../../index.html");
 		if (website.empty())
-		website = loadFile("../../error_404.html");
+			website = loadFile("../../error_404.html");
 		std::string css = loadFile("../../style.css");
 
 		if (cmp.find("GET /style.css") != std::string::npos) {
@@ -80,7 +80,7 @@ void Server::waitConnection() {
 void Server::setupSocket() {
 	int opt = 1, i = 0;
 
-	for (std::vector<int>::iterator it = port.begin(); it != port.end() && !stop; ++it, ++i) {
+	for (std::vector<size_t>::iterator it = m_port.begin(); it != m_port.end() && !stop; ++it, ++i) {
 		int sokFd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sokFd < 0)
 			print_error("Error creation socket", m_socketFD);
@@ -100,7 +100,7 @@ void Server::setupSocket() {
 		if (listen(sokFd, SOMAXCONN) < 0)
 			print_error("listening", m_socketFD);
 
-		m_socketFD[i] = sokFd;
+		addSocket(i, sokFd);
 	}
 }
 

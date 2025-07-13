@@ -6,11 +6,12 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/11 22:22:15 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/13 23:31:21 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../includes/Server.h"
+#include "Server.h"
+#include "Logger.h"
 
 Server::Server() {
 	for (size_t i = 0; i < 1024; i++)
@@ -24,7 +25,7 @@ Server::~Server() {
 	}
 }
 
-void Server::addPort(int port)
+void Server::addPort(size_t port)
 {
 	m_port.push_back(port);
 }
@@ -35,17 +36,22 @@ void Server::removePort(size_t idx)
 		m_port.erase(m_port.begin() + idx);
 }
 
-std::vector<int> Server::getPorts() const
+std::vector<size_t> Server::getPorts() const
 {
 	return m_port;
 }
 
-int Server::getPort(size_t idx) const
+size_t Server::getPort(size_t idx) const
 {
 	return m_port[idx];
 }
 
 void Server::setServerName(const std::string& name) { m_serverName = name; }
+
+void Server::setHostIp(const std::string& ip)
+{
+	m_hostIp = ip;
+}
 
 void Server::setRoot(const std::string& root) { m_root = root; }
 
@@ -90,4 +96,41 @@ void Server::removeLocation(size_t idx)
 {
 	if (idx < m_locations.size())
 		m_locations.erase(m_locations.begin() + idx);
+}
+
+void Server::addSocket(int idx, int socket)
+{
+	if (m_socketFD[idx] != -1)
+		close(m_socketFD[idx]);
+	m_socketFD[idx] = socket;
+}
+
+void Server::removeSocket(int idx)
+{
+	if (m_socketFD[idx] != -1)
+	{
+		close(m_socketFD[idx]);
+		m_socketFD[idx] = -1;
+	}
+}
+
+Location::Location()
+{
+	#if DEBUG
+		Logger::log(CYAN, "Location CONSTRUCTION");
+	#endif
+}
+
+Location::~Location()
+{
+	#if DEBUG
+		Logger::log(CYAN, "Location DESTRUCTION");
+	#endif
+}
+
+Location::Location(const std::string& path) : m_path(path)
+{
+	#if DEBUG
+		Logger::log(CYAN, "LOCATION DESTRUCTION");
+	#endif
 }
