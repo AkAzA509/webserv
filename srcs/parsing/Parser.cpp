@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/14 00:03:51 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/15 19:57:05 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -232,13 +232,45 @@ Location Parser::parseLocation(const std::string& data, const std::string& path)
 		}
 		else if (words[0] == "index")
 		{
-			
+			if (s_v < 2) throw std::runtime_error("Location index requires at least one path to index file");
+
+			for (std::vector<std::string>::iterator wit = words.begin() + 1; wit != words.end(); ++wit)
+			{
+				std::string path = *wit;
+				location.addIndexFile(path);
+			}
 		}
 		else if (words[0] == "autoindex")
 		{
 			if (s_v != 2) throw std::runtime_error("Autoindex requires on/off");
 			
 			location.setAutoIndexOn(words[1] == "on");
+		}
+		else if (words[0] == "cgi_path")
+		{
+			if (s_v < 2) throw std::runtime_error("cgi path requires at least 1 path");
+
+			for (std::vector<std::string>::iterator wit = words.begin() + 1; wit != words.end(); ++wit)
+			{
+				std::string path = *wit;
+				location.addCgiPath(path);
+			}
+		}
+		else if (words[0] == "cgi_ext")
+		{
+			if (s_v < 2) throw std::runtime_error("cgi extension requires at least 1 extension");
+
+			for (std::vector<std::string>::iterator wit = words.begin() + 1; wit != words.end(); ++wit)
+			{
+				std::string extension = *wit;
+				location.addCgiExt(extension);
+			}
+		}
+		else if (words[0] == "return")
+		{
+			if (s_v != 2) throw std::runtime_error("return requires only 1 redirection path");
+
+			location.setRedirectionPath(words[1]);
 		}
 	}
 }

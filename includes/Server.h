@@ -41,7 +41,8 @@ class Location
 		std::string m_root;
 		std::map<std::string, void (*)(Request&, Response&)> m_allowed_methods;
 		bool m_autoIndex;
-		std::string m_cgi_path;
+		std::vector<std::string> m_cgi_path;
+		std::vector<std::string> m_cgi_ext;
 	public:
 		Location();
 		Location(const std::string& path);
@@ -52,14 +53,17 @@ class Location
 		inline std::string getRoot() const { return m_root; }
 		inline std::map<std::string, void (*)(Request&, Response&)> getAllowedMethods() const { return m_allowed_methods; }
 		inline bool isAutoIndexOn() const { return m_autoIndex; }
-		inline std::string getCgiPath() const { return m_cgi_path; }
+		inline std::vector<std::string> getCgiPath() const { return m_cgi_path; }
+		inline std::vector<std::string> getCgiExt() const { return m_cgi_ext; }
 		void setPath(const std::string& path) { m_path = path; }
 		void setRedirectionPath(const std::string& path) { m_redirection_path = path; }
 		void addIndexFile(const std::string& indexFile) { m_indexFiles.push_back(indexFile); }
 		void setRoot(const std::string& root) { m_root = root; }
 		void addAllowedMethod(const std::string& methodName, void (*method)(Request&, Response&)) { m_allowed_methods[methodName] = method; }
 		void setAutoIndexOn(bool on) { m_autoIndex = on; }
-		void setCgiPath(const std::string& path) { m_cgi_path = path; }
+		void addCgiPath(const std::string& path) { m_cgi_path.push_back(path); }
+		void addCgiExt(const std::string& ext) { m_cgi_ext.push_back(ext); }
+		void setRedirectionPath(const std::string& path) { m_redirection_path = path; }
 };
 
 class Server
