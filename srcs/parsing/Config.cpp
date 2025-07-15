@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: lebonsushi <lebonsushi@student.42.fr>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/10 13:31:21 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/15 22:52:46 by lebonsushi       ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,12 @@ void Config::parseConfigFile()
 		throw std::runtime_error("Couldn't open " + m_FileName);
 	
 	m_Servers = m_Parser.parse(infile);
+
+	for (std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it)
+	{
+		Server s = *it;
+		std::cout << s << std::endl;
+	}
 }
 
 Config::Config(int ac, char **av) : m_ArgCount(ac), m_FileName(av[1] ? av[1] : std::string())

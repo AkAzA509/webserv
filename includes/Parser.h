@@ -25,6 +25,7 @@ class Parser
 		size_t findEndBracket(size_t startPos, const std::string& fileData) const;
 		Server parseServer(const std::string& data) const;
 		void makeServers(const std::string& fileData);
+		void (*getCorrespondingMethod(const std::string& str) const)(Request&, Response&);
 	public:
 		Parser();
 		~Parser();
@@ -33,3 +34,4 @@ class Parser
 };
 
 std::vector<std::string> split(const std::string& str, const std::string& sep);
+

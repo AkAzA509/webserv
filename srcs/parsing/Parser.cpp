@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: lebonsushi <lebonsushi@student.42.fr>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/15 19:57:05 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/15 22:41:47 by lebonsushi       ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -195,6 +195,50 @@ bool satoi(const std::string& str, int& result)
 	return true;
 }
 
+void GET(Request& req, Response& resp)
+{
+	(void)req;
+	(void)resp;
+}
+
+void PUT(Request& req, Response& resp)
+{
+	(void)req;
+	(void)resp;
+}
+
+void DELETE(Request& req, Response& resp)
+{
+	(void)req;
+	(void)resp;
+}
+
+void POST(Request& req, Response& resp)
+{
+	(void)req;
+	(void)resp;
+}
+
+void ERROR (Request& req, Response& resp)
+{
+	(void)req;
+	(void)resp;
+}
+
+void (*Parser::getCorrespondingMethod(const std::string& str) const)(Request&, Response&)
+{
+	if (str == "GET")
+		return GET;
+	else if (str == "PUT")
+		return PUT;
+	else if (str == "DELETE")
+		return DELETE;
+	else if (str == "POST")
+		return POST;
+	else
+		return ERROR;
+}
+
 Location Parser::parseLocation(const std::string& data, const std::string& path) const
 {
 	Location location(path);
@@ -208,7 +252,7 @@ Location Parser::parseLocation(const std::string& data, const std::string& path)
 
 		if (line.empty() || line == "}") continue;
 
-		if (line.back() != ';')
+		if (line[line.length() - 1] != ';')
 			throw std::runtime_error("Location directives must end with semicolon");
 
 		line.erase(line.end() - 1);
@@ -273,6 +317,7 @@ Location Parser::parseLocation(const std::string& data, const std::string& path)
 			location.setRedirectionPath(words[1]);
 		}
 	}
+	return location;
 }
 
 Server Parser::parseServer(const std::string& data) const
@@ -367,12 +412,16 @@ Server Parser::parseServer(const std::string& data) const
 				if (words.back() != "{")
 					throw std::runtime_error("Location block must start with '{'");
 
+				if (v_size != 3)
+					throw std::runtime_error("Location requires a path after it");
+
 				size_t block_start = data.find("{", it->find(words[0]));
 				size_t block_end = findEndBracket(block_start, data);
 
 				std::string loc_content = data.substr(block_start + 1, block_end - block_start - 1);
 
-				server.addLocation(parseLocation(loc_content, words[1]));
+				Location loc = parseLocation(loc_content, words[1]);
+				server.addLocation(loc);
 				while (it != params.end() && data.find("}", it->find(words[0])) == std::string::npos)
 					it++;
 			}

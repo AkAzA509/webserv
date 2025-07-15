@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: lebonsushi <lebonsushi@student.42.fr>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/15 17:42:59 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/15 22:55:31 by lebonsushi       ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,6 +114,43 @@ void Server::removeSocket(int idx)
 	}
 }
 
+std::ostream& operator<<(std::ostream& os, const Server& server)
+{
+	os << "Server {\n";
+	os << "  Server Name: " << server.getServerName() << "\n";
+	os << "  Host IP: " << server.getHostIp() << "\n";
+	os << "  Root: " << server.getRoot() << "\n";
+
+	os << "  Ports: [";
+	for (size_t i = 0; i < server.getPorts().size(); ++i) {
+		os << server.getPorts()[i];
+		if (i != server.getPorts().size() - 1) os << ", ";
+	}
+	os << "]\n";
+
+	os << "  Index Files: [";
+	for (size_t i = 0; i < server.getIndexFiles().size(); ++i) {
+		os << server.getIndexFiles()[i];
+		if (i != server.getIndexFiles().size() - 1) os << ", ";
+	}
+	os << "]\n";
+
+	os << "  Error Pages: {\n";
+	for (std::map<int, std::string>::const_iterator it = server.getErrorPages().begin(); it != server.getErrorPages().end(); ++it) {
+		os << "    " << it->first << ": " << it->second << "\n";
+	}
+	os << "  }\n";
+
+	os << "  Locations:\n";
+	const std::vector<Location>& locs = server.getLocations();
+	for (size_t i = 0; i < locs.size(); ++i) {
+		os << "    [" << i << "] " << locs[i] << "\n";
+	}
+
+	os << "}";
+	return os;
+}
+
 Location::Location()
 {
 	#if DEBUG
@@ -133,4 +170,46 @@ Location::Location(const std::string& path) : m_path(path)
 	#if DEBUG
 		Logger::log(CYAN, "LOCATION DESTRUCTION");
 	#endif
+}
+
+
+std::ostream& operator<<(std::ostream& os, const Location& loc)
+{
+	os << "Location {\n";
+	os << "  Path: " << loc.getPath() << "\n";
+	os << "  Redirection Path: " << loc.getRedirectionPath() << "\n";
+	os << "  Root: " << loc.getRoot() << "\n";
+	os << "  AutoIndex: " << (loc.isAutoIndexOn() ? "On" : "Off") << "\n";
+
+	os << "  Index Files: [";
+	for (size_t i = 0; i < loc.getIndexFiles().size(); ++i) {
+		os << loc.getIndexFiles()[i];
+		if (i != loc.getIndexFiles().size() - 1) os << ", ";
+	}
+	os << "]\n";
+
+	os << "  CGI Paths: [";
+	for (size_t i = 0; i < loc.getCgiPath().size(); ++i) {
+		os << loc.getCgiPath()[i];
+		if (i != loc.getCgiPath().size() - 1) os << ", ";
+	}
+	os << "]\n";
+
+	os << "  CGI Extensions: [";
+	for (size_t i = 0; i < loc.getCgiExt().size(); ++i) {
+		os << loc.getCgiExt()[i];
+		if (i != loc.getCgiExt().size() - 1) os << ", ";
+	}
+	os << "]\n";
+
+	os << "  Allowed Methods: [";
+	const std::map<std::string, void (*)(Request&, Response&)>& methods = loc.getAllowedMethods();
+	for (std::map<std::string, void (*)(Request&, Response&)>::const_iterator it = methods.begin(); it != methods.end(); ++it) {
+		os << it->first;
+		if (snext(it) != methods.end()) os << ", ";
+	}
+	os << "]\n";
+
+	os << "}";
+	return os;
 }
