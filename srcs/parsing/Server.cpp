@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lebonsushi <lebonsushi@student.42.fr>      +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/15 22:55:31 by lebonsushi       ###   ########.fr       */
+/*   Updated: 2025/07/17 02:00:00 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,6 +167,7 @@ Location::~Location()
 
 Location::Location(const std::string& path) : m_path(path)
 {
+	std::cout << path << std::endl;
 	#if DEBUG
 		Logger::log(CYAN, "LOCATION DESTRUCTION");
 	#endif

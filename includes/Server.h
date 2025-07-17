@@ -33,6 +33,24 @@ extern volatile sig_atomic_t stop;
 #define CONNECTION_CLOSE "Connection: close\r\n"
 
 
+
+
+struct Directive
+{
+	std::string name;
+	std::vector<std::string> args;
+	size_t line_number;
+};
+
+template <typename Iterator>
+Iterator snext(Iterator it, typename std::iterator_traits<Iterator>::difference_type n = 1)
+{
+	while (n-- > 0)
+		++it;
+	return it;
+}
+
+
 class Location
 {
 	private:
@@ -66,13 +84,6 @@ class Location
 		void addCgiExt(const std::string& ext) { m_cgi_ext.push_back(ext); }
 };
 
-template<typename Iterator>
-Iterator snext(Iterator it, typename std::iterator_traits<Iterator>::difference_type n = 1)
-{
-	std::advance(it, n);
-	return it;
-}
-
 class Server
 {
 	private:
@@ -105,7 +116,7 @@ class Server
 		std::string getIndexFile(size_t idx) const;
 		void addIndexFile(const std::string& file);
 		void removeIndexFile(size_t idx);
-		std::map<int, std::string> getErrorPages() const { return m_errorPages; }
+		const std::map<int, std::string>& getErrorPages() const { return m_errorPages; }
 		std::string getErrorPage(int page) const;
 		void addErrorPage(int page, const std::string& path);
 		void addLocation(Location& loc);

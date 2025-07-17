@@ -3,16 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: lebonsushi <lebonsushi@student.42.fr>      +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/15 22:41:47 by lebonsushi       ###   ########.fr       */
+/*   Updated: 2025/07/17 02:33:36 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Parser.h"
 #include "Logger.h"
 #include <limits>
+#include <stack>
 
 Parser::Parser()
 {
@@ -119,27 +120,26 @@ bool Parser::isDigits(const std::string& input) const
 
 std::vector<std::string> split(const std::string& str, const std::string& sep)
 {
-	std::vector<std::string> res;
+	std::vector<std::string> tokens;
+	size_t start = 0, end = 0;
 	
-	if (sep.empty())
+	while ((end = str.find_first_of(sep, start)) != std::string::npos)
 	{
-		if (!str.empty())
-			res.push_back(str);
-		return res;
+		if (end != start)
+			tokens.push_back(str.substr(start, end - start));
+		start = end + 1;
 	}
-	
-	size_t start = 0;
-
-	for (size_t end = str.find(sep, start); end != std::string::npos; end = str.find(sep, start))
-	{
-		if (start < end)
-			res.push_back(str.substr(start, end - start));
-		start = end + sep.length();
-	}
-
 	if (start < str.length())
-		res.push_back(str.substr(start));
-	return res;
+		tokens.push_back(str.substr(start));
+	return tokens;
+}
+
+std::string trim(const std::string& str)
+{
+	size_t first = str.find_first_not_of(" \t");
+	if (first == std::string::npos) return "";
+	size_t last = str.find_last_not_of(" \t");
+	return str.substr(first, (last - first + 1));
 }
 
 size_t Parser::getLineNumber(const std::string& data, size_t pos) const
@@ -239,192 +239,280 @@ void (*Parser::getCorrespondingMethod(const std::string& str) const)(Request&, R
 		return ERROR;
 }
 
-Location Parser::parseLocation(const std::string& data, const std::string& path) const
+std::vector<std::string> splitLines(const std::string& data)
 {
-	Location location(path);
-
-	std::vector<std::string> lines = split(data, "\n");
+	std::vector<std::string> lines;
+	std::istringstream ss(data);
+	std::string line;
 	
-	for (std::vector<std::string>::iterator it = lines.begin(); it != lines.end(); ++it)
+	while (std::getline(ss, line)) {
+		lines.push_back(line);
+	}
+	return lines;
+}
+
+Directive Parser::parseDirective(const std::string& line, size_t line_number) const
+{
+	Directive dir;
+	dir.line_number = line_number;
+	
+	std::string clean_line = line;
+	if (clean_line[clean_line.length() - 1] == ';') {
+		clean_line.erase(clean_line.end() - 1);
+	}
+
+	// Split into tokens
+	std::vector<std::string> tokens = split(clean_line, " \t");
+	if (tokens.empty())
 	{
-		std::string line = *it;
-		removeWhiteSpaces(line);
+		std::ostringstream o;
 
-		if (line.empty() || line == "}") continue;
+		o << "Empty directive at line " << line_number + 1;
+		throw std::runtime_error(o.str());
+	}
 
-		if (line[line.length() - 1] != ';')
-			throw std::runtime_error("Location directives must end with semicolon");
+	dir.name = tokens[0];
+	for (size_t i = 1; i < tokens.size(); i++)
+	{
+		if (!tokens[i].empty())
+			dir.args.push_back(tokens[i]);
+	}
+	
+	return dir;
+}
 
-		line.erase(line.end() - 1);
-		std::vector<std::string> words = split(line, " ");
+Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_t& index, Server& server) const
+{
+	(void)server;
+	Location location;
+	std::string loc_line = trim(lines[index]);
+	size_t brace_level = 0;
+	size_t start_line = index;
 
-		size_t s_v = words.size();
+	// Extract location path
+	size_t path_start = loc_line.find(' ');
+	size_t path_end = loc_line.find('{');
+	if (path_start == std::string::npos || path_end == std::string::npos) {
+		std::ostringstream o;
 
-		if (words[0] == "root")
-		{
-			if (s_v != 2) throw std::runtime_error("Location root requires exactly 1 path");
-			location.setRoot(words[1]);
+		o << "Invalid location block at line " << index + 1;
+		throw std::runtime_error(o.str());
+	}
+	std::string path = trim(loc_line.substr(path_start, path_end - path_start));
+	location.setPath(path);
+
+	// Parse location directives
+	for (index++; index < lines.size(); index++) {
+		std::string line = trim(lines[index]);
+		if (line.empty()) continue;
+
+		// Track braces
+		for (size_t i = 0; i < line.length(); i++) {
+			char c = line[i];
+			if (c == '{') brace_level++;
+			if (c == '}') brace_level--;
 		}
-		else if (words[0] == "methods")
-		{
-			if (s_v < 2) throw std::runtime_error("Location methods requires at least one method");
-			
-			for (std::vector<std::string>::iterator itm = words.begin() + 1; itm != words.end(); ++itm)
-			{
-				location.addAllowedMethod(*itm, getCorrespondingMethod(*itm));
+
+		// Skip comments
+		if (line[0] == '#') continue;
+
+		// Skip the opening brace line
+		if (index == start_line + 1 && line == "{") continue;
+
+		// End of location block
+		if (brace_level == 0) break;
+
+		// Parse directives
+		if (line.find(';') != std::string::npos) {
+			Directive dir = parseDirective(line, index);
+			if (dir.name == "root") {
+				location.setRoot(dir.args[0]);
 			}
-		}
-		else if (words[0] == "index")
-		{
-			if (s_v < 2) throw std::runtime_error("Location index requires at least one path to index file");
-
-			for (std::vector<std::string>::iterator wit = words.begin() + 1; wit != words.end(); ++wit)
-			{
-				std::string path = *wit;
-				location.addIndexFile(path);
+			else if (dir.name == "allow_methods") {
+				for (std::vector<std::string>::const_iterator it = dir.args.begin(); it != dir.args.end(); ++it) {
+					location.addAllowedMethod(*it, getCorrespondingMethod(*it));
+				}
 			}
-		}
-		else if (words[0] == "autoindex")
-		{
-			if (s_v != 2) throw std::runtime_error("Autoindex requires on/off");
-			
-			location.setAutoIndexOn(words[1] == "on");
-		}
-		else if (words[0] == "cgi_path")
-		{
-			if (s_v < 2) throw std::runtime_error("cgi path requires at least 1 path");
-
-			for (std::vector<std::string>::iterator wit = words.begin() + 1; wit != words.end(); ++wit)
-			{
-				std::string path = *wit;
-				location.addCgiPath(path);
+			else if (dir.name == "index") {
+				for (std::vector<std::string>::iterator index = dir.args.begin(); index != dir.args.end(); ++index)
+				{
+					location.addIndexFile(*index);
+				}
 			}
-		}
-		else if (words[0] == "cgi_ext")
-		{
-			if (s_v < 2) throw std::runtime_error("cgi extension requires at least 1 extension");
-
-			for (std::vector<std::string>::iterator wit = words.begin() + 1; wit != words.end(); ++wit)
-			{
-				std::string extension = *wit;
-				location.addCgiExt(extension);
+			else if (dir.name == "autoindex") {
+				location.setAutoIndexOn(dir.args[0] == "on");
 			}
-		}
-		else if (words[0] == "return")
-		{
-			if (s_v != 2) throw std::runtime_error("return requires only 1 redirection path");
-
-			location.setRedirectionPath(words[1]);
+			else if (dir.name == "cgi_path") {
+				for (std::vector<std::string>::iterator path = dir.args.begin(); path != dir.args.end(); ++path)
+				{
+					location.addCgiPath(*path);
+				}
+				// for (const auto& path : dir.args) {
+				// 	location.addCgiPath(path);
+			}
+			else if (dir.name == "cgi_ext") {
+				for (std::vector<std::string>::iterator ext = dir.args.begin(); ext != dir.args.end(); ++ext)
+				{
+					location.addCgiExt(*ext);
+				}
+			}
+			else if (dir.name == "return") {
+				location.setRedirectionPath(dir.args[0]);
+			}
 		}
 	}
 	return location;
 }
 
+int Parser::parsePort(const Directive& dir) const
+{
+	if (dir.args.size() != 1)
+	{
+		std::ostringstream o;
+		o << "'listen' requires exactly one argument at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+	if (!isDigits(dir.args[0]))
+	{
+		std::ostringstream o;
+		o << "Invalid port number at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+	int port = std::atoi(dir.args[0].c_str());
+	if (port < 0 || port > PORT_MAX)
+	{
+		std::ostringstream o;
+		o << "Port cannot be less than 0 or above 65535 at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+	
+	return port;
+}
+
+std::pair<int, std::string> Parser::parseErrorPage(const Directive& dir) const
+{
+	if (dir.args.size() != 2)
+	{
+		std::ostringstream o;
+		o << "'error_page' requires exactly two argument at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+
+	if (!isDigits(dir.args[0]))
+	{
+		std::ostringstream o;
+		o << "Invalid error page number at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+	int page = std::atoi(dir.args[0].c_str());
+	
+	return std::make_pair(page, dir.args[1]);
+}
+
+std::string Parser::parseServerName(const Directive& dir) const
+{
+	if (dir.args.size() != 1)
+	{
+		std::ostringstream o;
+		o << "'server_name' requires exactly one argument at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+
+	return dir.args[0];
+}
+
+std::string Parser::parseHost(const Directive& dir) const
+{
+	if (dir.args.size() != 1)
+	{
+		std::ostringstream o;
+		o << "'host' requires exactly one argument at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+
+	if (!isIp(dir.args[0]))
+	{
+		std::ostringstream o;
+		o << "'host' argument need to be an ip, Example: 127.0.0.1\nat line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+	return dir.args[0];
+}
+
+std::string Parser::parseRoot(const Directive& dir) const
+{
+	if (dir.args.size() != 1)
+	{
+		std::ostringstream o;
+		o << "'root' requires exactly one argument at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+
+	return dir.args[0];
+}
+
 Server Parser::parseServer(const std::string& data) const
 {
-	std::vector<std::string> params = split(data + ' ', "\n\t");
-	params.erase(params.begin());
 	Server server;
+	std::vector<std::string> lines = splitLines(data);
+	size_t brace_level = 0;
+	bool in_server_block = false;
 
-	for (std::vector<std::string>::iterator it = params.begin(); it != params.end(); ++it)
+	for (size_t i = 0; i < lines.size(); i++)
 	{
-		if (it->empty())
-			continue;
+		std::string line = trim(lines[i]);
+		if (line.empty() || line[0] == '#') continue;
 
-		std::string line = *it;
-		removeWhiteSpaces(line);
-		
-		char last_char = line[line.length() - 1];
-		if (last_char != ';' && last_char != '{' && last_char != '}')
+		for (size_t i = 0; i < line.length(); i++)
 		{
-			std::cout << last_char << std::endl;
-			throw std::runtime_error("Line must end with ;, {, or }");
+			char c = line[i];
+			if (c == '{') brace_level++;
+			if (c == '}') brace_level--;
 		}
-		
-		if (last_char == '{' || last_char == '}')
-			continue;
-		
-		line.erase(line.end() - 1);
-		
 
-		std::vector<std::string> words = split(line, " ");
-		size_t v_size = words.size();
-
-		for (size_t i = 0; i < v_size; i++)
+		// Server block detection
+		if (!in_server_block && brace_level > 0 && line.find("server") != std::string::npos)
 		{
-			if (words[0] == "listen")
-			{
-				if (v_size != 2)
-					throw std::runtime_error("'listen' directive requires exactly 1 argument");
-				if (isDigits(words[1]) == false)
-					throw std::runtime_error("Port must be a number");
-				
-				int port = std::atoi(words[1].c_str());
-				if (port < 0 || port > PORT_MAX)
-					throw std::runtime_error("Server can only listens port between 0 and 65535");
-				server.addPort(port);
-			}
-			else if (words[0] == "server_name")
-			{
-				if (v_size != 2)
-					throw std::runtime_error("'server_name' requires exactly one name");
-				server.setServerName(words[1]);
-			}
-			else if (words[0] == "host")
-			{
-				if (v_size != 2)
-					throw std::runtime_error("'host' directive requires exactly 1 argument");
-				if (!isIp(words[1]))
-					throw std::runtime_error("Invalid IP address format");
-				server.setHostIp(words[1]);
-			}
-			else if (words[0] == "root")
-			{
-				if (v_size != 2)
-					throw std::runtime_error("'root' directive requires exactly 1 path");
-				
-				server.setRoot(words[1]);
-			}
-			else if (words[0] == "index")
-			{
-				if (v_size < 2)
-					throw std::runtime_error("'index' directive requires at least 1 path to index file");
-					
-				for (std::vector<std::string>::iterator it = words.begin() + 1; it != words.end(); ++it)
-				{
-					std::string path = *it;
-					server.addIndexFile(path);
+			in_server_block = true;
+			continue;
+		}
+
+		if (!in_server_block) continue;
+
+		// Handle location blocks
+		if (line.find("location") == 0 && brace_level > 1) {
+			Location location = parseLocationBlock(lines, i, server);
+			server.addLocation(location);
+			continue;
+		}
+
+		if (brace_level == 1)
+		{
+			Directive dir = parseDirective(line, i);
+			if (dir.name == "listen")
+				server.addPort(parsePort(dir));
+			else if (dir.name == "server_name")
+				server.setServerName(parseServerName(dir));
+			else if (dir.name == "host")
+				server.setHostIp(parseHost(dir));
+			else if (dir.name == "root")
+				server.setRoot(parseRoot(dir));
+			else if (dir.name == "index") {
+				for (std::vector<std::string>::iterator it = dir.args.begin(); it != dir.args.end(); ++it) {
+					server.addIndexFile(*it);
 				}
 			}
-			else if (words[0] == "error_page")
+			else if (dir.name == "error_page")
 			{
-				if (v_size != 3)
-					throw std::runtime_error("'error_page' directive requires exactly 2 arguments");
-				
-				int error_page = 0;
-				if (!satoi(words[1], error_page))
-					throw std::runtime_error("'error_page' first argument can only be a number");
-
-				server.addErrorPage(error_page, words[2]);
+				std::pair<int, std::string> result = parseErrorPage(dir);
+				server.addErrorPage(result.first, result.second);
 			}
-			else if (words[0] == "location")
-			{
-				if (words.back() != "{")
-					throw std::runtime_error("Location block must start with '{'");
+			// Add other directives as needed
+		}
 
-				if (v_size != 3)
-					throw std::runtime_error("Location requires a path after it");
-
-				size_t block_start = data.find("{", it->find(words[0]));
-				size_t block_end = findEndBracket(block_start, data);
-
-				std::string loc_content = data.substr(block_start + 1, block_end - block_start - 1);
-
-				Location loc = parseLocation(loc_content, words[1]);
-				server.addLocation(loc);
-				while (it != params.end() && data.find("}", it->find(words[0])) == std::string::npos)
-					it++;
-			}
+		// End of server block
+		if (in_server_block && brace_level == 0) {
+			break;
 		}
 	}
 	return server;
