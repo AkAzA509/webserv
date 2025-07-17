@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/17 02:33:36 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/17 15:05:58 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -261,7 +261,6 @@ Directive Parser::parseDirective(const std::string& line, size_t line_number) co
 		clean_line.erase(clean_line.end() - 1);
 	}
 
-	// Split into tokens
 	std::vector<std::string> tokens = split(clean_line, " \t");
 	if (tokens.empty())
 	{
@@ -277,7 +276,7 @@ Directive Parser::parseDirective(const std::string& line, size_t line_number) co
 		if (!tokens[i].empty())
 			dir.args.push_back(tokens[i]);
 	}
-	
+
 	return dir;
 }
 
@@ -290,6 +289,7 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 	size_t start_line = index;
 
 	// Extract location path
+	Logger::log(BLINK, "start line: %s\n", loc_line.c_str());
 	size_t path_start = loc_line.find(' ');
 	size_t path_end = loc_line.find('{');
 	if (path_start == std::string::npos || path_end == std::string::npos) {
@@ -301,34 +301,37 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 	std::string path = trim(loc_line.substr(path_start, path_end - path_start));
 	location.setPath(path);
 
-	// Parse location directives
-	for (index++; index < lines.size(); index++) {
+	for (; index < lines.size(); index++) {
 		std::string line = trim(lines[index]);
 		if (line.empty()) continue;
 
-		// Track braces
 		for (size_t i = 0; i < line.length(); i++) {
 			char c = line[i];
 			if (c == '{') brace_level++;
 			if (c == '}') brace_level--;
 		}
 
+		Logger::log(RED, "Line: %s\n", line.c_str());
 		// Skip comments
 		if (line[0] == '#') continue;
 
-		// Skip the opening brace line
-		if (index == start_line + 1 && line == "{") continue;
+		if (index == start_line + 1 && line == "{")
+		{
+			std::cout << "OUAIS: " << lines[index] << std::endl;
+			continue;
+		}
 
 		// End of location block
 		if (brace_level == 0) break;
 
-		// Parse directives
 		if (line.find(';') != std::string::npos) {
 			Directive dir = parseDirective(line, index);
+			Logger::log(RED, "Directive Name: %s\n", dir.name.c_str());
 			if (dir.name == "root") {
 				location.setRoot(dir.args[0]);
 			}
 			else if (dir.name == "allow_methods") {
+				std::cout << "Method parsing" << std::endl;
 				for (std::vector<std::string>::const_iterator it = dir.args.begin(); it != dir.args.end(); ++it) {
 					location.addAllowedMethod(*it, getCorrespondingMethod(*it));
 				}
@@ -340,6 +343,8 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 				}
 			}
 			else if (dir.name == "autoindex") {
+				bool on = (dir.args[0] == "on");
+				std::cout << "On? " << (on ? "True" : "False") << std::endl;
 				location.setAutoIndexOn(dir.args[0] == "on");
 			}
 			else if (dir.name == "cgi_path") {
@@ -456,7 +461,7 @@ Server Parser::parseServer(const std::string& data) const
 	Server server;
 	std::vector<std::string> lines = splitLines(data);
 	size_t brace_level = 0;
-	bool in_server_block = false;
+	bool in_server_block = true;
 
 	for (size_t i = 0; i < lines.size(); i++)
 	{
@@ -470,17 +475,9 @@ Server Parser::parseServer(const std::string& data) const
 			if (c == '}') brace_level--;
 		}
 
-		// Server block detection
-		if (!in_server_block && brace_level > 0 && line.find("server") != std::string::npos)
+		if (line.find("location") == 0 && brace_level > 1)
 		{
-			in_server_block = true;
-			continue;
-		}
-
-		if (!in_server_block) continue;
-
-		// Handle location blocks
-		if (line.find("location") == 0 && brace_level > 1) {
+			std::cout << "ca va la" << std::endl;
 			Location location = parseLocationBlock(lines, i, server);
 			server.addLocation(location);
 			continue;
@@ -523,7 +520,6 @@ void Parser::makeServers(const std::string& fileData)
 	if (fileData.find("server", 0))
 		throw std::runtime_error("Didn't find server");
 	
-	
 	size_t pos = 0;
 	const size_t len = fileData.length();
 
@@ -534,6 +530,8 @@ void Parser::makeServers(const std::string& fileData)
 		
 		if (start >= end)
 			throw std::runtime_error("Invalid server block scope");
+
+		std::cout << fileData.substr(start, end - start + 1) << std::endl;
 		
 		m_Servers.push_back(parseServer(fileData.substr(start, end - start)));
 		pos = end + 1;

@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/17 02:00:00 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/17 15:00:09 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,7 +151,7 @@ std::ostream& operator<<(std::ostream& os, const Server& server)
 	return os;
 }
 
-Location::Location()
+Location::Location() : m_autoIndex(false) 
 {
 	#if DEBUG
 		Logger::log(CYAN, "Location CONSTRUCTION");
