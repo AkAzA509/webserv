@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/17 02:33:52 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/17 16:28:28 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,11 @@ Config::~Config()
 	#if DEBUG
 		Logger::log(LIGHTMAGENTA, "Config destruction");
 	#endif
+}
+
+std::vector<Server>& Config::getServer()
+{
+	return m_Servers;
 }
 
 void Config::parseConfigFile()
@@ -33,11 +38,11 @@ void Config::parseConfigFile()
 	
 	m_Servers = m_Parser.parse(infile);
 
-	for (std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it)
-	{
-		Server s = *it;
-		std::cout << s << std::endl;
-	}
+	// for (std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it)
+	// {
+	// 	Server s = *it;
+	// 	std::cout << s << std::endl;
+	// }
 }
 
 Config::Config(int ac, char **av) : m_ArgCount(ac), m_FileName(av[1] ? av[1] : std::string())
@@ -55,4 +60,18 @@ Config::Config(int ac, char **av) : m_ArgCount(ac), m_FileName(av[1] ? av[1] : s
 		Logger::log(RED, "Error: %s", e.what());
 	}
 	
+}
+
+void Config::launchServers() {
+	try
+	{
+		for(std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it) {
+			it->setupSocket();
+			it->waitConnection();
+		}
+	}
+	catch(const std::exception& e)
+	{
+		Logger::log(RED, "Error: %s", e.what());
+	}
 }

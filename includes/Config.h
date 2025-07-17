@@ -22,5 +22,7 @@ class Config
 		void parseConfigFile();
 	public:
 		Config(int ac, char **av);
+		std::vector<Server>& getServer();
+		void launchServers();
 		~Config();
 };

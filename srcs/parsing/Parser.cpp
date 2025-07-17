@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/17 15:05:58 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/17 16:25:52 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -289,10 +289,10 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 	size_t start_line = index;
 
 	// Extract location path
-	Logger::log(BLINK, "start line: %s\n", loc_line.c_str());
 	size_t path_start = loc_line.find(' ');
 	size_t path_end = loc_line.find('{');
-	if (path_start == std::string::npos || path_end == std::string::npos) {
+	if (path_start == std::string::npos || path_end == std::string::npos)
+	{
 		std::ostringstream o;
 
 		o << "Invalid location block at line " << index + 1;
@@ -301,69 +301,59 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 	std::string path = trim(loc_line.substr(path_start, path_end - path_start));
 	location.setPath(path);
 
-	for (; index < lines.size(); index++) {
+	for (; index < lines.size(); index++)
+	{
 		std::string line = trim(lines[index]);
 		if (line.empty()) continue;
 
-		for (size_t i = 0; i < line.length(); i++) {
+		for (size_t i = 0; i < line.length(); i++)
+		{
 			char c = line[i];
 			if (c == '{') brace_level++;
 			if (c == '}') brace_level--;
 		}
 
-		Logger::log(RED, "Line: %s\n", line.c_str());
 		// Skip comments
 		if (line[0] == '#') continue;
 
 		if (index == start_line + 1 && line == "{")
-		{
-			std::cout << "OUAIS: " << lines[index] << std::endl;
 			continue;
-		}
 
 		// End of location block
 		if (brace_level == 0) break;
 
-		if (line.find(';') != std::string::npos) {
+		if (line.find(';') != std::string::npos)
+		{
 			Directive dir = parseDirective(line, index);
-			Logger::log(RED, "Directive Name: %s\n", dir.name.c_str());
-			if (dir.name == "root") {
+			if (dir.name == "root")
 				location.setRoot(dir.args[0]);
-			}
-			else if (dir.name == "allow_methods") {
-				std::cout << "Method parsing" << std::endl;
-				for (std::vector<std::string>::const_iterator it = dir.args.begin(); it != dir.args.end(); ++it) {
+			else if (dir.name == "allow_methods")
+			{
+				for (std::vector<std::string>::const_iterator it = dir.args.begin(); it != dir.args.end(); ++it)
 					location.addAllowedMethod(*it, getCorrespondingMethod(*it));
-				}
 			}
-			else if (dir.name == "index") {
+			else if (dir.name == "index")
+			{
 				for (std::vector<std::string>::iterator index = dir.args.begin(); index != dir.args.end(); ++index)
-				{
 					location.addIndexFile(*index);
-				}
 			}
-			else if (dir.name == "autoindex") {
+			else if (dir.name == "autoindex")
+			{
 				bool on = (dir.args[0] == "on");
-				std::cout << "On? " << (on ? "True" : "False") << std::endl;
-				location.setAutoIndexOn(dir.args[0] == "on");
+				location.setAutoIndexOn(on);
 			}
-			else if (dir.name == "cgi_path") {
+			else if (dir.name == "cgi_path")
+			{
 				for (std::vector<std::string>::iterator path = dir.args.begin(); path != dir.args.end(); ++path)
-				{
 					location.addCgiPath(*path);
-				}
-				// for (const auto& path : dir.args) {
-				// 	location.addCgiPath(path);
 			}
-			else if (dir.name == "cgi_ext") {
+			else if (dir.name == "cgi_ext") 
+			{
 				for (std::vector<std::string>::iterator ext = dir.args.begin(); ext != dir.args.end(); ++ext)
-				{
 					location.addCgiExt(*ext);
-				}
 			}
-			else if (dir.name == "return") {
+			else if (dir.name == "return")
 				location.setRedirectionPath(dir.args[0]);
-			}
 		}
 	}
 	return location;
@@ -477,7 +467,6 @@ Server Parser::parseServer(const std::string& data) const
 
 		if (line.find("location") == 0 && brace_level > 1)
 		{
-			std::cout << "ca va la" << std::endl;
 			Location location = parseLocationBlock(lines, i, server);
 			server.addLocation(location);
 			continue;
@@ -504,7 +493,6 @@ Server Parser::parseServer(const std::string& data) const
 				std::pair<int, std::string> result = parseErrorPage(dir);
 				server.addErrorPage(result.first, result.second);
 			}
-			// Add other directives as needed
 		}
 
 		// End of server block
@@ -530,8 +518,6 @@ void Parser::makeServers(const std::string& fileData)
 		
 		if (start >= end)
 			throw std::runtime_error("Invalid server block scope");
-
-		std::cout << fileData.substr(start, end - start + 1) << std::endl;
 		
 		m_Servers.push_back(parseServer(fileData.substr(start, end - start)));
 		pos = end + 1;
@@ -549,12 +535,6 @@ std::vector<Server> Parser::parse(std::ifstream& infile)
 	removeWhiteSpaces(fileData);
 	
 	makeServers(fileData);
-	#if DEBUG
-		// for (std::vector<Server>::iterator it = servers.begin(); it != servers.end(); ++it)
-		// {
-		// 	Logger::log(BLUE, )
-		// }
-	#endif
 
 	return this->m_Servers;
 }

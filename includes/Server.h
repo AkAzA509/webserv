@@ -8,10 +8,12 @@
 #include <vector>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include <sys/select.h>
 #include <poll.h>
 #include <sys/epoll.h>
 #include <netinet/in.h>
+#include <cstdio>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -31,9 +33,6 @@ extern volatile sig_atomic_t stop;
 #define CONTENT_LENGHT "Content-Length: "
 #define RETURN "\r\n"
 #define CONNECTION_CLOSE "Connection: close\r\n"
-
-
-
 
 struct Directive
 {

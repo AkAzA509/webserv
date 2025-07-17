@@ -3,16 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   init_connection.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/02 10:21:09 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/13 17:31:23 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/17 16:15:43 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../../includes/Server.h"
-#include "../../includes/Config.h"
-#include "../../includes/Parser.h"
+#include "Server.h"
 
 volatile sig_atomic_t stop = 0; // a mettre dans le main
 
@@ -34,7 +32,7 @@ void Server::waitConnection() {
 		//while (query != 0) {
 			query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 			if (query < 0) {
-				perror("recv failed");
+				std::perror("recv failed");
 			} else if (query == 0) {
 				printf("Client déconnecté\n");
 			} else {
@@ -104,18 +102,3 @@ void Server::setupSocket() {
 	}
 }
 
-int main(void) {
-	Server *test = new Server();
-	signal(SIGINT, sigint_handler);
-	try
-	{
-		test->setupSocket();
-		test->waitConnection();
-	}
-	catch(const std::exception& e)
-	{
-		std::cerr << e.what() << '\n';
-	}
-	delete test;
-	return 0;
-}

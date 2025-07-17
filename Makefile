@@ -18,7 +18,11 @@ SRCS      = $(SRC_DIR)/main.cpp \
             $(SRC_DIR)/parsing/Config.cpp \
             $(SRC_DIR)/parsing/Parser.cpp \
             $(SRC_DIR)/parsing/Server.cpp \
-			$(SRC_DIR)/parsing/Logger.cpp
+			$(SRC_DIR)/parsing/Logger.cpp \
+			$(SRC_DIR)/exec/init_connection.cpp \
+			$(SRC_DIR)/exec/exec_utils.cpp \
+			$(SRC_DIR)/exec/sig.cpp \
+			$(SRC_DIR)/exec/listen.cpp \
 
 OBJS      = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/prod/%.o, $(SRCS))
 OBJSDEV   = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/dev/%.o, $(SRCS))
