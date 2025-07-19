@@ -6,15 +6,15 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:31:41 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/04 11:17:30 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/19 10:14:39 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/Server.h"
 
-void print_error(const std::string& str, int *fd) {
-	for (size_t i = 0; fd[i] != -1; i++)
-		close(fd[i]);
+void print_error(const std::string& str, std::vector<int> fd) {
+	for (std::vector<int>::iterator it = fd.begin(); it != fd.end(); ++it)
+		close(*it);
 	throw std::runtime_error(str);
 }
 

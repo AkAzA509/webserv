@@ -3,27 +3,18 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/17 15:00:09 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/19 10:24:00 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.h"
 #include "Logger.h"
 
-Server::Server() {
-	for (size_t i = 0; i < 1024; i++)
-		m_socketFD[i] = -1;
-}
-
-Server::~Server() {
-	for (size_t i = 0; i < 1024; i++) {
-		if (m_socketFD[i] != -1)
-			close(m_socketFD[i]);
-	}
-}
+Server::Server() {}
+Server::~Server() {}
 
 void Server::addPort(size_t port)
 {
@@ -98,19 +89,12 @@ void Server::removeLocation(size_t idx)
 		m_locations.erase(m_locations.begin() + idx);
 }
 
-void Server::addSocket(int idx, int socket)
-{
-	if (m_socketFD[idx] != -1)
-		close(m_socketFD[idx]);
-	m_socketFD[idx] = socket;
-}
-
 void Server::removeSocket(int idx)
 {
-	if (m_socketFD[idx] != -1)
+	if (idx <= m_socketFd.size())
 	{
-		close(m_socketFD[idx]);
-		m_socketFD[idx] = -1;
+		close(m_socketFd[idx]);
+		m_socketFd.erase(m_socketFd.begin() + idx);
 	}
 }
 

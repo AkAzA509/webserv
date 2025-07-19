@@ -21,7 +21,9 @@
 #include <fcntl.h>
 #include <signal.h>
 
-extern volatile sig_atomic_t stop;
+extern volatile sig_atomic_t sig;
+
+#define MAX_EVENT 100
 
 #define DEFAULT_CLIENT_MAX_BODY_SIZE 1_000_000  
 
@@ -86,7 +88,7 @@ class Location
 class Server
 {
 	private:
-		int m_socketFD[1024];
+		std::vector<int> m_socketFd;
 		std::vector<size_t> m_port;
 		std::string m_serverName;
 		std::string m_hostIp;
@@ -120,7 +122,6 @@ class Server
 		void addErrorPage(int page, const std::string& path);
 		void addLocation(Location& loc);
 		void removeLocation(size_t idx);
-		void addSocket(int idx, int socket);
 		void removeSocket(int idx);
 };
 
@@ -129,7 +130,7 @@ std::ostream& operator<<(std::ostream& o, const Server& server);
 
 // Utils
 
-void print_error(const std::string& str, int *fd);
+void print_error(const std::string& str, std::vector<int> fd);
 std::string loadFile(const std::string& path);
 
 // Signaux
