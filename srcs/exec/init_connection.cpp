@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/02 10:21:09 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/19 15:04:20 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/19 15:14:24 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@
 void Server::setupSocket() {
 	int opt = 1, i = 0;
 
-	for (std::vector<size_t>::iterator it = m_port.begin(); it != m_port.end() && !stop; ++it, ++i) {
+	for (std::vector<size_t>::iterator it = m_port.begin(); it != m_port.end() && !sig; ++it, ++i) {
 		int sokFd = socket(AF_INET, SOCK_STREAM, 0);
 		if (sokFd < 0)
 			print_error("Error creation socket", m_socketFd);
