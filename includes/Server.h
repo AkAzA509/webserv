@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <signal.h>
+#include <sstream>
 
 extern volatile sig_atomic_t sig;
 
@@ -101,6 +102,10 @@ class Server
 		~Server();
 		void setupSocket();
 		void waitConnection();
+		void recvClient(int epfd, std::vector<int> socketFd, struct epoll_event ev, std::string& request);
+		bool requestComplete(std::string& request);
+		void parseRequest(std::string& request);
+		void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd);
 	public:
 		std::vector<size_t> getPorts() const;
 		size_t getPort(size_t idx) const;
@@ -137,4 +142,4 @@ std::string loadFile(const std::string& path);
 
 void sigint_handler(int);
 
-// changer le port de std::string a vector ou container pour gerer l'ecoute sur plusieurs port
+// Request

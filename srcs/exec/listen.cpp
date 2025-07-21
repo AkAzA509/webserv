@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/19 14:42:49 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/21 12:39:14 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #include "../../includes/Config.h"
 #include "../../includes/Parser.h"
 #include "../../includes/Logger.h"
+
 
 // EPOLLIN : met l'event socket en mode lecture
 void addEpollServer(std::vector<int> fd, int epfd) {
@@ -40,38 +41,17 @@ void addEpollClient(int client_fd, int epfd, std::vector<int> fd) {
 	}
 }
 
-
-void recvClient(int epfd, std::vector<int> socketFd, struct epoll_event ev) {
-	ssize_t query = -1;
-	char buffer[4096];
-	int client_fd = ev.data.fd;
-
-	query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-	if (query < 0) {
-		if (query == EINTR || query == EWOULDBLOCK)
-			print_error("recv failed", socketFd);
-	}
-	else if (query == 0) {
-		epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev);
-		close(client_fd);
-		return;
-	}
-	else {
-		buffer[query] = '\0';
-		Logger::log(WHITE, "Requete : %s\n\n", buffer);
-	}
-}
-
 //EAGAIN : signifie qu'il n'y a rien a lire
 //EWOULDBLOCK : signifie qu'il n'y a rien a lire
 //EINTR : interruption du signal
-void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd) {
-	for (size_t i = 0; i < ready; i++)
+void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd) {
+	for (int i = 0; i < ready; i++)
 	{
 		int fd = ev[i].data.fd;
 		if (std::find(socketFd.begin(), socketFd.end(), fd) != socketFd.end()) {
 			struct sockaddr_in client_addr;
 			socklen_t client_len = sizeof(client_addr);
+			std::string request;
 
 			int client_fd = accept(fd, (struct sockaddr*)&client_addr, &client_len);
 			if (client_fd < 0) {
@@ -85,7 +65,8 @@ void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, 
 				}
 			}
 			addEpollClient(client_fd, epfd, socketFd);
-			recvClient(epfd, socketFd, ev[i]);
+			recvClient(epfd, socketFd, ev[i], request);
+			parseRequest(request);
 		}
 	}
 }

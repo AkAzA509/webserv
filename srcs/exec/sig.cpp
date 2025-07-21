@@ -6,12 +6,12 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:48 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/04 10:25:58 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/21 10:56:17 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/Server.h"
 
 void sigint_handler(int) {
-	stop = 1;
+	sig = 1;
 }

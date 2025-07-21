@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/19 10:24:00 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/21 10:55:25 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -91,7 +91,7 @@ void Server::removeLocation(size_t idx)
 
 void Server::removeSocket(int idx)
 {
-	if (idx <= m_socketFd.size())
+	if (idx <= (int)m_socketFd.size())
 	{
 		close(m_socketFd[idx]);
 		m_socketFd.erase(m_socketFd.begin() + idx);
