@@ -135,6 +135,7 @@ std::ostream& operator<<(std::ostream& o, const Server& server);
 
 // Utils
 
+std::vector<std::string> splitRequest(const std::string& str);
 void print_error(const std::string& str, std::vector<int> fd);
 std::string loadFile(const std::string& path);
 

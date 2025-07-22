@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   listen.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/22 13:08:35 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/22 20:27:36 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,19 +75,19 @@ bool isMethodeValid(std::string& methode) {
 }
 
 void Server::parseRequest(std::string& request) {
-	std::vector<std::string> request_tab = split(request, " \r\n");
-	if (request_tab.empty()) {
+	std::vector<std::string> request_lines = splitRequest(request);
+	
+	if (request_lines.empty()) {
 		Logger::log(RED, "error request empty error ...!");
 		return;
 	}
-	// for (std::vector<std::string>::iterator it = request_tab.begin(); it != request_tab.end(); it++) {
-	// 	std::cout << "tab = "<< *it << std::endl;
-	// }
 	
 	std::vector<Location>::iterator it = m_locations.begin();
+
+	std::vector<std::string> words = split(request_lines[0], " ");
 	
 	while (it != m_locations.end()) {
-		if (request_tab[1] == it->getPath()) {
+		if (words[1] == it->getPath()) {
 			std::cout << "loc find : " << it->getPath() << std::endl;
 			break;
 		}
@@ -97,7 +97,9 @@ void Server::parseRequest(std::string& request) {
 		Logger::log(RED, "error bad request error ... !");
 		return;
 	}
-	Request req(*it, request, request_tab);
+	Request req(*it, words, request_lines);
+
+	std::cout << req << std::endl;
 	//Response r;
 }
 

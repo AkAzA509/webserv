@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   init_connection.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/02 10:21:09 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/22 13:34:07 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/22 16:30:16 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,7 @@ void Server::waitConnection() {
 			}
 		}
 		printf("Reçu : %s\n", request.c_str());
+
 		std::string cmp(buffer);
 		std::string to_send;
 		std::string type;

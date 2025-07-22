@@ -23,7 +23,7 @@ SRCS      = $(SRC_DIR)/main.cpp \
 			$(SRC_DIR)/exec/exec_utils.cpp \
 			$(SRC_DIR)/exec/sig.cpp \
 			$(SRC_DIR)/exec/listen.cpp \
-			$(SRC_DIR)/exec/request.cpp \
+			$(SRC_DIR)/exec/Request.cpp \
 
 OBJS      = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/prod/%.o, $(SRCS))
 OBJSDEV   = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/dev/%.o, $(SRCS))

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/21 10:55:25 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/22 20:18:47 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,6 +96,23 @@ void Server::removeSocket(int idx)
 		close(m_socketFd[idx]);
 		m_socketFd.erase(m_socketFd.begin() + idx);
 	}
+}
+
+std::vector<std::string> splitRequest(const std::string& str) {
+	std::vector<std::string> result;
+	std::string line;
+	std::istringstream stream(str);
+	
+	while (std::getline(stream, line)) {
+		if (!line.empty() && line[line.length() - 1] == '\r')
+			line.erase(line.end() - 1);
+		result.push_back(line);
+	}
+
+	if (!str.empty() && (str[str.length() - 1] == '\n' || str[str.length() - 1] == '\r'))
+		result.push_back("");
+
+	return result;
 }
 
 std::ostream& operator<<(std::ostream& os, const Server& server)
