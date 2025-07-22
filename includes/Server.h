@@ -3,7 +3,6 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include "Request.h"
 #include "Response.h"
 #include <vector>
 #include <sys/socket.h>
@@ -52,6 +51,7 @@ Iterator snext(Iterator it, typename std::iterator_traits<Iterator>::difference_
 	return it;
 }
 
+class Request;
 
 class Location
 {

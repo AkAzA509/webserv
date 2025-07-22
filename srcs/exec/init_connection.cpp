@@ -6,72 +6,101 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/02 10:21:09 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/19 15:14:24 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/22 13:34:07 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.h"
 
-// void Server::waitConnection() {
-// 	while (stop != 1) {
-// 		signal(SIGINT, sigint_handler);
-// 		struct sockaddr_in client_addr;
-// 		socklen_t client_len = sizeof(client_addr);
+void Server::waitConnection() {
+	while (sig != 1) {
+		signal(SIGINT, sigint_handler);
+		struct sockaddr_in client_addr;
+		socklen_t client_len = sizeof(client_addr);
 	
-// 		int client_fd = accept(m_socketFD[0], (struct sockaddr*)&client_addr, &client_len);
-// 		if (client_fd < 0) {
-// 			if (errno == EINTR)
-// 				break;
-// 			print_error("accept failed", m_socketFD);
-// 			continue;
-// 		}
-// 		ssize_t query = -1;
-// 		char buffer[4096];
-// 		//while (query != 0) {
-// 			query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-// 			if (query < 0) {
-// 				std::perror("recv failed");
-// 			} else if (query == 0) {
-// 				printf("Client déconnecté\n");
-// 			} else {
-// 				buffer[query] = '\0';
-// 				printf("Reçu : %s\n", buffer);
-// 			}
-// 		//}
-// 		std::string cmp(buffer);
-// 		std::string to_send;
-// 		std::string type;
-// 		char bite[20];
+		int client_fd = accept(m_socketFd[0], (struct sockaddr*)&client_addr, &client_len);
+		if (client_fd < 0) {
+			if (errno == EINTR)
+				break;
+			print_error("accept failed", m_socketFd);
+			continue;
+		}
+		// ssize_t query = -1;
+		// char buffer[5000000];
+		// //while (query != 0) {
+		// 	query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+		// 	if (query < 0) {
+		// 		std::perror("recv failed");
+		// 	} else if (query == 0) {
+		// 		printf("Client déconnecté\n");
+		// 	} else {
+		// 		buffer[query] = '\0';
+		// 		printf("Reçu : %s\n", buffer);
+		// 	}
+		// //}
+		ssize_t query = -1;
+		char buffer[4096];
+		std::string request;
+		while (1) {
+			query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+			if (query > 0) {
+				request.append(buffer, query);
+				if (requestComplete(request)) {
+					//Logger::log(WHITE, "Requete : %s\n=======================", request.c_str());
+					break;
+				}
+				continue;
+			}
+			else if (query < 0) {
+				if (errno == EINTR || errno == EWOULDBLOCK) 
+					break;
+				else {
+					//epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev);
+					close(client_fd);
+					//print_error("recv failed", socketFd);
+				}
+			}
+			else if (query == 0) {
+				//epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev);
+				close(client_fd);
+				return;
+			}
+		}
+		printf("Reçu : %s\n", request.c_str());
+		std::string cmp(buffer);
+		std::string to_send;
+		std::string type;
+		char bite[20];
 		
-// 		std::string website = loadFile("../../index.html");
-// 		if (website.empty())
-// 			website = loadFile("../../error_404.html");
-// 		std::string css = loadFile("../../style.css");
+		std::string website = loadFile("html/index.html");
+		if (website.empty())
+			website = loadFile("html/error_404.html");
+		std::string css = loadFile("html/style.css");
 
-// 		if (cmp.find("GET /style.css") != std::string::npos) {
-// 			to_send = css;
-// 			type = "text/css";
-// 		} else {
-// 			to_send = website;
-// 			type = "text/html";
-// 		}
+		if (cmp.find("GET /style.css") != std::string::npos) {
+			to_send = css;
+			type = "text/css";
+		} else {
+			to_send = website;
+			type = "text/html";
+		}
 		
-// 		sprintf(bite, "%zu", to_send.size());
-// 		std::string len(bite);
+		sprintf(bite, "%zu", to_send.size());
+		std::string len(bite);
 
-// 		std::string msg = HEADER;
-// 		msg += CONTENT_TYPE + type + RETURN;
-// 		msg += CONTENT_LENGHT + len + RETURN;
-// 		msg += CONNECTION_CLOSE;
-// 		msg += RETURN;
-// 		msg += to_send;
+		std::string msg = HEADER;
+		msg += CONTENT_TYPE + type + RETURN;
+		msg += CONTENT_LENGHT + len + RETURN;
+		msg += CONNECTION_CLOSE;
+		msg += RETURN;
+		msg += to_send;
 
-// 		ssize_t response = send(client_fd, msg.c_str(), msg.size(), 0);
-// 		if (response < 0)
-// 			perror("send failed");
-// 		close(client_fd);
-// 	}
-// }
+		ssize_t response = send(client_fd, msg.c_str(), msg.size(), 0);
+		if (response < 0)
+			perror("send failed");
+		close(client_fd);
+	}
+}
 
 void Server::setupSocket() {
 	int opt = 1, i = 0;
@@ -97,5 +126,5 @@ void Server::setupSocket() {
 			print_error("listening", m_socketFd);
 
 		m_socketFd.push_back(sokFd);
-		}
+	}
 }

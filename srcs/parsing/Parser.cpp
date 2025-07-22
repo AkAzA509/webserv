@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/17 16:25:52 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/22 12:50:09 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -201,7 +201,7 @@ void GET(Request& req, Response& resp)
 	(void)resp;
 }
 
-void PUT(Request& req, Response& resp)
+void HEAD(Request& req, Response& resp)
 {
 	(void)req;
 	(void)resp;
@@ -229,8 +229,8 @@ void (*Parser::getCorrespondingMethod(const std::string& str) const)(Request&, R
 {
 	if (str == "GET")
 		return GET;
-	else if (str == "PUT")
-		return PUT;
+	else if (str == "HEAD")
+		return HEAD;
 	else if (str == "DELETE")
 		return DELETE;
 	else if (str == "POST")

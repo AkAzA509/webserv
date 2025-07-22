@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/21 12:39:14 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/22 13:08:35 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,91 @@
 #include "../../includes/Parser.h"
 #include "../../includes/Logger.h"
 
+// Check si j'ai le crlf dans la requete et pas de content lenght donc requete finie
+// Si j'ai le crlf et un body lenght je check si j'ai deja tout les octets pour verifier
+// la fin de la requete ou non
+bool Server::requestComplete(std::string& request) {
+	size_t crlf_pos = request.find("\r\n\r\n");
+	size_t content_lenght = request.find(CONTENT_LENGHT);
+
+	if (crlf_pos != std::string::npos && content_lenght == std::string::npos)
+		return true;
+	else if (crlf_pos != std::string::npos && content_lenght != std::string::npos) {
+		size_t body_size = 0;
+
+		std::stringstream ss(request.substr(content_lenght + strlen(CONTENT_LENGHT)));
+		ss >> body_size;
+
+		if (request.substr(crlf_pos + strlen("\r\n\r\n")).size() == body_size)
+			return true;
+		else
+			return false;
+	}
+	return false;
+}
+
+void Server::recvClient(int epfd, std::vector<int> socketFd, struct epoll_event ev, std::string& request) {
+	ssize_t query = -1;
+	char buffer[4096];
+	int client_fd = ev.data.fd;
+
+	while (1) {
+		query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+		if (query > 0) {
+			request.append(buffer, query);
+			if (requestComplete(request)) {
+				Logger::log(WHITE, "Requete : %s\n=======================", request.c_str());
+				break;
+			}
+			continue;
+		}
+		else if (query < 0) {
+			if (errno == EINTR || errno == EWOULDBLOCK) 
+				break;
+			else {
+				epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev);
+				close(client_fd);
+				print_error("recv failed", socketFd);
+			}
+		}
+		else if (query == 0) {
+			epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev);
+			close(client_fd);
+			return;
+		}
+	}
+}
+
+bool isMethodeValid(std::string& methode) {
+	return (methode == "GET" || methode == "POST" || methode == "DELETE" || methode == "HEAD");
+}
+
+void Server::parseRequest(std::string& request) {
+	std::vector<std::string> request_tab = split(request, " \r\n");
+	if (request_tab.empty()) {
+		Logger::log(RED, "error request empty error ...!");
+		return;
+	}
+	// for (std::vector<std::string>::iterator it = request_tab.begin(); it != request_tab.end(); it++) {
+	// 	std::cout << "tab = "<< *it << std::endl;
+	// }
+	
+	std::vector<Location>::iterator it = m_locations.begin();
+	
+	while (it != m_locations.end()) {
+		if (request_tab[1] == it->getPath()) {
+			std::cout << "loc find : " << it->getPath() << std::endl;
+			break;
+		}
+		++it;
+	}
+	if (it == m_locations.end()) {
+		Logger::log(RED, "error bad request error ... !");
+		return;
+	}
+	Request req(*it, request, request_tab);
+	//Response r;
+}
 
 // EPOLLIN : met l'event socket en mode lecture
 void addEpollServer(std::vector<int> fd, int epfd) {
@@ -71,23 +156,23 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 	}
 }
 
-void Server::waitConnection() {
-	int epfd = epoll_create(10), ready = 0;
-	if (epfd < 0)
-		print_error("epoll init fail", m_socketFd);
+// void Server::waitConnection() {
+// 	int epfd = epoll_create(10), ready = 0;
+// 	if (epfd < 0)
+// 		print_error("epoll init fail", m_socketFd);
 
-	addEpollServer(m_socketFd, epfd);
+// 	addEpollServer(m_socketFd, epfd);
 
-	signal(SIGINT, sigint_handler);
-	while(sig == 0) {
-		struct epoll_event ev[MAX_EVENT];
-		ready = epoll_wait(epfd, ev, MAX_EVENT, 1000);
-		if (ready == 0)
-			continue;
-		if (ready == -1) {
-			close(epfd);
-			print_error("epoll_wait failed", m_socketFd);
-		}
-		acceptClient(ready, m_socketFd, ev, epfd);
-	}
-}
+// 	signal(SIGINT, sigint_handler);
+// 	while(sig == 0) {
+// 		struct epoll_event ev[MAX_EVENT];
+// 		ready = epoll_wait(epfd, ev, MAX_EVENT, 1000);
+// 		if (ready == 0)
+// 			continue;
+// 		if (ready == -1) {
+// 			close(epfd);
+// 			print_error("epoll_wait failed", m_socketFd);
+// 		}
+// 		acceptClient(ready, m_socketFd, ev, epfd);
+// 	}
+// }
