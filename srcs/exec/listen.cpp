@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   listen.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/22 20:27:36 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/23 19:25:06 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,19 +87,17 @@ void Server::parseRequest(std::string& request) {
 	std::vector<std::string> words = split(request_lines[0], " ");
 	
 	while (it != m_locations.end()) {
-		if (words[1] == it->getPath()) {
-			std::cout << "loc find : " << it->getPath() << std::endl;
+		if (words[1] == it->getPath())
 			break;
-		}
 		++it;
 	}
 	if (it == m_locations.end()) {
 		Logger::log(RED, "error bad request error ... !");
 		return;
 	}
-	Request req(*it, words, request_lines);
+	Request req(*it, words, request_lines, request);
 
-	std::cout << req << std::endl;
+	// std::cout << req << std::endl;
 	//Response r;
 }
 

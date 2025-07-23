@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/23 18:09:10 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/23 20:59:54 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,35 +69,35 @@ void Config::launchServers() {
 			it->setupSocket();
 			it->waitConnection();
 			// std::string request =
-			// "GET /tours HTTP/1.1\r\n"
-			// "Host: localhost\r\n"
-			// "Content-Length: 40\r\n"
-			// "Content-Type: application/octet-stream\r\n"
-			// "\r\n"
-			// "<128 bytes of binary data from 00 to 7F>";
-			// std::string request2 =
-			// "PUT /tours HTTP/1.1\r\n"
-			// "Host: localhost\r\n"
-			// "Content-Length: 40\r\n"
-			// "Content-Type: application/octet-stream\r\n"
-			// "\r\n"
-			// "<128 bytes of binary data from 00 to 7F>";
-			// std::string request3 =
-			// "HEAD /tours HTTP/1.1\r\n"
-			// "Host: localhost\r\n"
-			// "Content-Length: 40\r\n"
-			// "Content-Type: application/octet-stream\r\n"
-			// "\r\n"
-			// "<128 bytes of binary data from 00 to 7F>";
-			// std::string request4 =
-			// "PUT /tours HTTP/1.1\r\n"
-			// "Host: localhost\r\n"
-			// "Content-Length: 40\r\n"
-			// "Content-Type: application/octet-stream\r\n"
-			// "\r\n"
-			// "<128 bytes of binary data from 00 to 7F>";
+			// 	"POST / HTTP/1.1\r\n"
+			// 	"Host: localhost:8080\r\n"
+			// 	"Connection: keep-alive\r\n"
+			// 	"Content-Length: 7403881\r\n"
+			// 	"Cache-Control: max-age=0\r\n"
+			// 	"sec-ch-ua: \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Brave\";v=\"138\"\r\n"
+			// 	"sec-ch-ua-mobile: ?0\r\n"
+			// 	"sec-ch-ua-platform: \"Linux\"\r\n"
+			// 	"Origin: http://localhost:8080\r\n"
+			// 	"Content-Type: multipart/form-data; boundary=----WebKitFormBoundarynGSd7qu4fkLSGPvS\r\n"
+			// 	"Upgrade-Insecure-Requests: 1\r\n"
+			// 	"User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36\r\n"
+			// 	"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8\r\n"
+			// 	"Sec-GPC: 1\r\n"
+			// 	"Accept-Language: fr-FR,fr;q=0.8\r\n"
+			// 	"Sec-Fetch-Site: same-origin\r\n"
+			// 	"Sec-Fetch-Mode: navigate\r\n"
+			// 	"Sec-Fetch-User: ?1\r\n"
+			// 	"Sec-Fetch-Dest: document\r\n"
+			// 	"Referer: http://localhost:8080/\r\n"
+			// 	"Accept-Encoding: gzip, deflate, br, zstd\r\n"
+			// 	"\r\n"
+			// 	"------WebKitFormBoundarynGSd7qu4fkLSGPvS\r\n"
+			// 	"Content-Disposition: form-data; name=\"file\"; filename=\"IMG_0441.jpeg\"\r\n"
+			// 	"Content-Type: image/jpeg\r\n"
+			// 	"\r\n"
+			// 	"estbtrierogerovebbrogvierogiwebfperngpwofnoeibgrvoelrign;wefnpqeifwlrkgn;wekfnqlekfwlerkgnw\r\n"
+			// 	"------WebKitFormBoundarynGSd7qu4fkLSGPvS--\r\n";
 			// it->parseRequest(request);
-			// it->parseRequest(request2);
 		}
 	}
 	catch(const std::exception& e)
