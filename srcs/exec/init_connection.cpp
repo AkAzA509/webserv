@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   init_connection.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/02 10:21:09 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/22 16:30:16 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/23 18:42:48 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,19 +25,6 @@ void Server::waitConnection() {
 			print_error("accept failed", m_socketFd);
 			continue;
 		}
-		// ssize_t query = -1;
-		// char buffer[5000000];
-		// //while (query != 0) {
-		// 	query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-		// 	if (query < 0) {
-		// 		std::perror("recv failed");
-		// 	} else if (query == 0) {
-		// 		printf("Client déconnecté\n");
-		// 	} else {
-		// 		buffer[query] = '\0';
-		// 		printf("Reçu : %s\n", buffer);
-		// 	}
-		// //}
 		ssize_t query = -1;
 		char buffer[4096];
 		std::string request;
@@ -54,21 +41,16 @@ void Server::waitConnection() {
 			else if (query < 0) {
 				if (errno == EINTR || errno == EWOULDBLOCK) 
 					break;
-				else {
-					//epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev);
+				else
 					close(client_fd);
-					//print_error("recv failed", socketFd);
-				}
 			}
 			else if (query == 0) {
-				//epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev);
 				close(client_fd);
-				return;
+				continue;
 			}
 		}
 		printf("Reçu : %s\n", request.c_str());
-
-		std::string cmp(buffer);
+		std::cout << "len = " << request.size() << std::endl;
 		std::string to_send;
 		std::string type;
 		char bite[20];
@@ -78,12 +60,15 @@ void Server::waitConnection() {
 			website = loadFile("html/error_404.html");
 		std::string css = loadFile("html/style.css");
 
-		if (cmp.find("GET /style.css") != std::string::npos) {
+		if (request.find("GET /style.css") != std::string::npos) {
 			to_send = css;
 			type = "text/css";
-		} else {
+		} else if (request.find("GET /") != std::string::npos) {
 			to_send = website;
 			type = "text/html";
+		} else if (request.find("POST /") != std::string::npos) {
+			std::cerr << "go post ================\n";
+			parseRequest(request);
 		}
 		
 		sprintf(bite, "%zu", to_send.size());

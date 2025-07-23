@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/22 20:25:26 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/23 18:59:04 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ private:
 	bool m_foundBody;
 public:
 	Request() {};
-	Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request);
+	Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request);
 	~Request() {};
 	Request(const Request& copy);
 	Request& operator=(const Request& other);
@@ -39,11 +39,11 @@ public:
 	void parseBody(std::string& request);
 	void parseCGI(std::string& request);
 public:
-	void methodePost(std::vector<std::string>& tab);
-	void methodeGet(std::vector<std::string>& tab);
-	void methodeDelete(std::vector<std::string>& tab);
-	void methodePut(std::vector<std::string>& tab);
-	void methodeHead(std::vector<std::string>& tab);
+	void methodePost(std::vector<std::string>& tab, std::string& request);
+	void methodeGet(std::vector<std::string>& tab, std::string& request);
+	void methodeDelete(std::vector<std::string>& tab, std::string& request);
+	void methodePut(std::vector<std::string>& tab, std::string& request);
+	void methodeHead(std::vector<std::string>& tab, std::string& request);
 public:
 	std::string getBody() { return m_body; }
 	std::string getMethod() { return m_methode; }
