@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 10:13:39 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/23 01:30:15 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/23 19:57:55 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,12 +49,6 @@ Request& Request::operator=(const Request &other) {
 void Request::methodePost(std::vector<std::string>& tab) {
 	std::cout << "coucou Post\n";
 
-	
-
-	for (std::vector<std::string>::iterator it = tab.begin(); it != tab.end(); ++it)
-	{
-		
-	}
 	(void)tab;
 }
 

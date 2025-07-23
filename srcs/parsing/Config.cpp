@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/23 01:30:31 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/23 18:09:10 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,15 +66,15 @@ void Config::launchServers() {
 	try
 	{
 		for(std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it) {
-			// it->setupSocket();
-			// it->waitConnection();
-			std::string request =
-			"GET /tours HTTP/1.1\r\n"
-			"Host: localhost\r\n"
-			"Content-Length: 40\r\n"
-			"Content-Type: application/octet-stream\r\n"
-			"\r\n"
-			"<128 bytes of binary data from 00 to 7F>";
+			it->setupSocket();
+			it->waitConnection();
+			// std::string request =
+			// "GET /tours HTTP/1.1\r\n"
+			// "Host: localhost\r\n"
+			// "Content-Length: 40\r\n"
+			// "Content-Type: application/octet-stream\r\n"
+			// "\r\n"
+			// "<128 bytes of binary data from 00 to 7F>";
 			// std::string request2 =
 			// "PUT /tours HTTP/1.1\r\n"
 			// "Host: localhost\r\n"
@@ -96,7 +96,7 @@ void Config::launchServers() {
 			// "Content-Type: application/octet-stream\r\n"
 			// "\r\n"
 			// "<128 bytes of binary data from 00 to 7F>";
-			it->parseRequest(request);
+			// it->parseRequest(request);
 			// it->parseRequest(request2);
 		}
 	}
