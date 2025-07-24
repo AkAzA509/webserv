@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bienvenue chez Ma Biche</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>Ma Biche</h1>
+      <nav>
+        <ul>
+          <li><a href="#about">À propos</a></li>
+          <li><a href="#services">Services</a></li>
+          <li><a href="#gallery">Galerie</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="about">
+      <h2>À propos de Ma Biche</h2>
+      <p>
+        Bienvenue sur le site de <strong>Ma Biche</strong>, un espace de douceur, d'inspiration et de créativité.
+        Ici, on partage des idées, des projets et un soupçon de magie numérique. Notre mission est simple :
+        apporter une touche d’élégance et de chaleur dans le monde du web.
+      </p>
+    </section>
+
+    <section id="services">
+      <h2>Nos Services</h2>
+      <ul>
+        <li>Création de sites web statiques et modernes</li>
+        <li>Design responsive & mobile-first</li>
+        <li>Conseils en image de marque digitale</li>
+        <li>Contenu personnalisé avec amour 💌</li>
+      </ul>
+    </section>
+
+    <section id="gallery">
+      <h2>Galerie</h2>
+      <div class="gallery">
+        <img src="https://via.placeholder.com/300x200?text=Biche+1" alt="Biche 1" />
+        <img src="https://via.placeholder.com/300x200?text=Biche+2" alt="Biche 2" />
+        <img src="https://via.placeholder.com/300x200?text=Biche+3" alt="Biche 3" />
+      </div>
+    </section>
+
+    <section id="contact">
+      <h2>Contact</h2>
+      <form>
+        <label for="name">Nom</label>
+        <input type="text" id="name" name="name" required />
+
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required />
+
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="5" required></textarea>
+
+        <button type="submit">Envoyer</button>
+      </form>
+    </section>
+  </main>
+  <h1>Uploader un fichier</h1>
+  <form action="/" method="POST" enctype="multipart/form-data">
+    <label for="file">Choisissez un fichier :</label>
+    <input type="file" name="file" id="file" required>
+    <br><br>
+    <input type="submit" value="Envoyer">
+  </form>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 Ma Biche. Tous droits réservés.</p>
+      <p>Suivez-nous sur :
+        <a href="#">Instagram</a> |
+        <a href="#">Twitter</a> |
+        <a href="#">LinkedIn</a>
+      </p>
+    </div>
+  </footer>
+</body>
+</html>

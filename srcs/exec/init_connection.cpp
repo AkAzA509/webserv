@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/02 10:21:09 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/23 18:42:48 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/24 11:59:44 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,14 +67,13 @@ void Server::waitConnection() {
 			to_send = website;
 			type = "text/html";
 		} else if (request.find("POST /") != std::string::npos) {
-			std::cerr << "go post ================\n";
 			parseRequest(request);
 		}
-		
+
 		sprintf(bite, "%zu", to_send.size());
 		std::string len(bite);
 
-		std::string msg = HEADER;
+		std::string msg = HEADER_OK;
 		msg += CONTENT_TYPE + type + RETURN;
 		msg += CONTENT_LENGHT + len + RETURN;
 		msg += CONNECTION_CLOSE;

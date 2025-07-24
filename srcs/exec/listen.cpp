@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/23 19:25:06 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/24 15:37:30 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,20 +70,15 @@ void Server::recvClient(int epfd, std::vector<int> socketFd, struct epoll_event 
 	}
 }
 
-bool isMethodeValid(std::string& methode) {
-	return (methode == "GET" || methode == "POST" || methode == "DELETE" || methode == "HEAD");
-}
-
-void Server::parseRequest(std::string& request) {
+std::string Server::parseRequest(std::string& request) {
 	std::vector<std::string> request_lines = splitRequest(request);
-	
+
 	if (request_lines.empty()) {
 		Logger::log(RED, "error request empty error ...!");
-		return;
+		//envoyer ERROR_404;
 	}
 	
 	std::vector<Location>::iterator it = m_locations.begin();
-
 	std::vector<std::string> words = split(request_lines[0], " ");
 	
 	while (it != m_locations.end()) {
@@ -92,13 +87,12 @@ void Server::parseRequest(std::string& request) {
 		++it;
 	}
 	if (it == m_locations.end()) {
-		Logger::log(RED, "error bad request error ... !");
-		return;
+		Logger::log(RED, "error !");
+		//envoyer ERROR_404;
 	}
 	Request req(*it, words, request_lines, request);
-
-	// std::cout << req << std::endl;
-	//Response r;
+	Response resp(req, *this);
+	return resp.getResponse();
 }
 
 // EPOLLIN : met l'event socket en mode lecture
@@ -151,7 +145,10 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 			}
 			addEpollClient(client_fd, epfd, socketFd);
 			recvClient(epfd, socketFd, ev[i], request);
-			parseRequest(request);
+			std::string response = parseRequest(request);
+			ssize_t r_resp = send(client_fd, response.c_str(), response.size(), 0);
+			if (r_resp < 0)
+				Logger::log(RED, "send failed");
 		}
 	}
 }

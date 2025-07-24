@@ -3,7 +3,6 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include "Response.h"
 #include <vector>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -27,9 +26,18 @@ extern volatile sig_atomic_t sig;
 
 #define DEFAULT_CLIENT_MAX_BODY_SIZE 1_000_000  
 
-#define HEADER "HTTP/1.1 200 OK\r\n"
-#define ERROR_404 "HTTP/1.1 404 Not Found\r\n"
+#define HEADER_OK "HTTP/1.1 200 OK\r\n"
 #define ERROR_400 "HTTP/1.1 400 Bad request\r\n"
+#define ERROR_403 "HTTP/1.1 403 Forbidden\r\n"
+#define ERROR_404 "HTTP/1.1 404 Not Found\r\n"
+#define ERROR_405 "HTTP/1.1 405 Method Not Allowed\r\n"
+#define ERROR_411 "HTTP/1.1 411 Length Required\r\n"
+#define ERROR_500 "HTTP/1.1 500 Internal Server Error\r\n"
+
+#define CSS "text/css"
+#define HTML "text/html"
+#define JS "text/js"
+#define PY "text/py"
 
 #define CONTENT_TYPE "Content-Type: "
 #define CONTENT_LENGHT "Content-Length: "
@@ -52,6 +60,7 @@ Iterator snext(Iterator it, typename std::iterator_traits<Iterator>::difference_
 }
 
 class Request;
+class Response;
 
 class Location
 {
@@ -104,7 +113,7 @@ class Server
 		void waitConnection();
 		void recvClient(int epfd, std::vector<int> socketFd, struct epoll_event ev, std::string& request);
 		bool requestComplete(std::string& request);
-		void parseRequest(std::string& request);
+		std::string parseRequest(std::string& request);
 		void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd);
 	public:
 		std::vector<size_t> getPorts() const;
