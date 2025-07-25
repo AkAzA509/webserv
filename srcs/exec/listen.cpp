@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/24 15:37:30 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/25 13:41:46 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,12 +70,14 @@ void Server::recvClient(int epfd, std::vector<int> socketFd, struct epoll_event 
 	}
 }
 
-std::string Server::parseRequest(std::string& request) {
+Response Server::parseRequest(std::string& request) {
 	std::vector<std::string> request_lines = splitRequest(request);
 
 	if (request_lines.empty()) {
-		Logger::log(RED, "error request empty error ...!");
-		//envoyer ERROR_404;
+		Logger::log(RED, "error request : empty request !");
+		std::string error = ERROR_400;
+		Response resp(error, *this);
+		return resp;
 	}
 	
 	std::vector<Location>::iterator it = m_locations.begin();
@@ -87,12 +89,23 @@ std::string Server::parseRequest(std::string& request) {
 		++it;
 	}
 	if (it == m_locations.end()) {
-		Logger::log(RED, "error !");
-		//envoyer ERROR_404;
+		Logger::log(RED, "error location : location not found in the config file !");
+		std::string error = ERROR_404;
+		Response resp(error, *this);
+		return resp;
 	}
+
 	Request req(*it, words, request_lines, request);
 	Response resp(req, *this);
-	return resp.getResponse();
+	return resp;
+}
+
+void Server::sendClient(Response& resp, int client_fd) {
+	std::string response = resp.getResponse();
+	
+	ssize_t r_resp = send(client_fd, response.c_str(), response.size(), 0);
+	if (r_resp < 0)
+		Logger::log(RED, "send failed");
 }
 
 // EPOLLIN : met l'event socket en mode lecture
@@ -145,10 +158,7 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 			}
 			addEpollClient(client_fd, epfd, socketFd);
 			recvClient(epfd, socketFd, ev[i], request);
-			std::string response = parseRequest(request);
-			ssize_t r_resp = send(client_fd, response.c_str(), response.size(), 0);
-			if (r_resp < 0)
-				Logger::log(RED, "send failed");
+			sendClient(parseRequest(request), client_fd);
 		}
 	}
 }

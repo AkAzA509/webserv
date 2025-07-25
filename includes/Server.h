@@ -113,8 +113,9 @@ class Server
 		void waitConnection();
 		void recvClient(int epfd, std::vector<int> socketFd, struct epoll_event ev, std::string& request);
 		bool requestComplete(std::string& request);
-		std::string parseRequest(std::string& request);
+		Response parseRequest(std::string& request);
 		void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd);
+		void sendClient(Response& resp, int client_fd);
 	public:
 		std::vector<size_t> getPorts() const;
 		size_t getPort(size_t idx) const;

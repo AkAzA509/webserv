@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:43:15 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/24 15:33:14 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/25 13:10:00 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,11 +25,12 @@ private:
 public:
 	std::string getResponse();
 	void buildResponse();
-	void isErrorPage();
+	void isErrorPage(std::string& error);
 	void fillResponse(std::string type, std::string& file, std::string head);
 public:
 	Response() {};
 	Response(Request req, Server serv);
+	Response(std::string& error, Server serv);
 	~Response() {};
 	Response(const Response& copy);
 	Response& operator=(const Response& other);
