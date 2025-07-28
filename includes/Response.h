@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:43:15 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/25 13:10:00 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/28 14:42:36 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,9 +24,10 @@ private:
 	Server m_serv;
 public:
 	std::string getResponse();
-	void buildResponse();
 	void isErrorPage(std::string& error);
 	void fillResponse(std::string type, std::string& file, std::string head);
+	void methodeWithBodyResponse();
+	void methodeWithinBodyResponse();
 public:
 	Response() {};
 	Response(Request req, Server serv);

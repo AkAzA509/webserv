@@ -77,6 +77,7 @@ class Location
 		Location();
 		Location(const std::string& path);
 		~Location();
+		bool isAllowedMethode(std::string methode);
 		std::string getPath() const { return m_path; }
 		std::string getRedirectionPath() const { return m_redirection_path; }
 		std::vector<std::string> getIndexFiles() const { return m_indexFiles; }
@@ -95,6 +96,13 @@ class Location
 		void addCgiExt(const std::string& ext) { m_cgi_ext.push_back(ext); }
 };
 
+struct ClientState {
+	std::string request_buffer;
+	bool request_complete;
+	ClientState() : request_complete(false) {}
+};
+
+
 class Server
 {
 	private:
@@ -106,16 +114,18 @@ class Server
 		std::vector<std::string> m_indexFiles;
 		std::map<int, std::string> m_errorPages;
 		std::vector<Location> m_locations;
+		std::map<int, ClientState> m_clients;
 	public:
 		Server();
 		~Server();
 		void setupSocket();
 		void waitConnection();
-		void recvClient(int epfd, std::vector<int> socketFd, struct epoll_event ev, std::string& request);
+		bool recvClient(int epfd, struct epoll_event ev, int client_fd);
 		bool requestComplete(std::string& request);
 		Response parseRequest(std::string& request);
 		void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd);
 		void sendClient(Response& resp, int client_fd);
+		void cleanupClient(int epfd, int client_fd, struct epoll_event ev);
 	public:
 		std::vector<size_t> getPorts() const;
 		size_t getPort(size_t idx) const;
@@ -128,6 +138,7 @@ class Server
 		std::string getHostIp() const { return m_hostIp; }
 		std::string getRoot() const { return m_root; }
 		void setRoot(const std::string& root);
+		std::string getClientRequest(int client_fd);
 		std::vector<std::string> getIndexFiles() const { return m_indexFiles; }
 		std::string getIndexFile(size_t idx) const;
 		void addIndexFile(const std::string& file);
@@ -148,6 +159,8 @@ std::ostream& operator<<(std::ostream& o, const Server& server);
 std::vector<std::string> splitRequest(const std::string& str);
 void print_error(const std::string& str, std::vector<int> fd);
 std::string loadFile(const std::string& path);
+void addEpollClient(int client_fd, int epfd, std::vector<int> fd);
+void addEpollServer(std::vector<int> fd, int epfd);
 
 // Signaux
 

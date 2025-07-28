@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:42:54 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/25 13:09:41 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/28 15:09:24 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,8 +16,23 @@ Response::Response(Request req, Server serv) : m_req(req), m_serv(serv) {
 	std::string status = m_req.getResponseStatus();
 	if (status != HEADER_OK)
 		isErrorPage(status);
-	else
-		buildResponse();
+	else {
+		std::string name[5] = {"GET", "HEAD", "DELETE", "POST", "PUT"};
+		void(Response::*fonction[])() = {&Response::methodeWithBodyResponse, &Response::methodeWithinBodyResponse};
+		int j = -1;
+		for (int i = 0; i < 5; i++) {
+			if (name[i].compare(m_req.getMethod())) {
+				j = i;
+				break;
+			}
+		}
+		if (j >= 0 && j <= 1)
+			(this->*fonction[0])();
+		else
+
+			(this->*fonction[1])();
+	}
+		
 }
 
 Response::Response(std::string& status, Server serv) : m_serv(serv) {
@@ -57,7 +72,7 @@ void Response::isErrorPage(std::string& error_code) {
 	fillResponse(HTML, file, error_code);
 }
 
-void Response::buildResponse() {
+void Response::methodeWithBodyResponse() {
 	std::string type;
 	std::string file;
 
@@ -76,14 +91,21 @@ void Response::buildResponse() {
 	fillResponse(type, file, m_req.getResponseStatus());
 }
 
+void Response::methodeWithinBodyResponse() {
+	
+}
+
 void Response::fillResponse(std::string type, std::string& file, std::string head) {
 	std::ostringstream oss;
 	oss << file.size();
 	std::string size = oss.str();
 	m_response = head;
-	m_response += CONTENT_TYPE + type + RETURN;
-	m_response += CONTENT_LENGHT + size + RETURN;
+	if (type.empty()) {
+		m_response += CONTENT_LENGHT + size + RETURN;
+		m_response += CONTENT_TYPE + type + RETURN;	
+	}
 	m_response += CONNECTION_CLOSE;
 	m_response += RETURN;
-	m_response += file;
+	if (file.empty())
+		m_response += file;
 }
