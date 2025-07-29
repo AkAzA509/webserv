@@ -27,6 +27,7 @@ extern volatile sig_atomic_t sig;
 #define DEFAULT_CLIENT_MAX_BODY_SIZE 1_000_000  
 
 #define HEADER_OK "HTTP/1.1 200 OK\r\n"
+#define HEADER_303 "HTTP/1.1 303 See Other\r\n"
 #define ERROR_400 "HTTP/1.1 400 Bad request\r\n"
 #define ERROR_403 "HTTP/1.1 403 Forbidden\r\n"
 #define ERROR_404 "HTTP/1.1 404 Not Found\r\n"
@@ -42,6 +43,7 @@ extern volatile sig_atomic_t sig;
 #define CONTENT_TYPE "Content-Type: "
 #define CONTENT_LENGHT "Content-Length: "
 #define RETURN "\r\n"
+#define LOCATION_ROOT "Location: / \r\n"
 #define CONNECTION_CLOSE "Connection: close\r\n"
 
 struct Directive
@@ -101,7 +103,6 @@ struct ClientState {
 	bool request_complete;
 	ClientState() : request_complete(false) {}
 };
-
 
 class Server
 {
