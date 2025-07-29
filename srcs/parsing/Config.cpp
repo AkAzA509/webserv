@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ChloeMontaigut <ChloeMontaigut@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/23 20:59:54 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/29 13:52:53 by ChloeMontai      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,7 @@ void Config::launchServers() {
 			// 	"POST / HTTP/1.1\r\n"
 			// 	"Host: localhost:8080\r\n"
 			// 	"Connection: keep-alive\r\n"
-			// 	"Content-Length: 7403881\r\n"
+			// 	"Content-Length:\r\n"
 			// 	"Cache-Control: max-age=0\r\n"
 			// 	"sec-ch-ua: \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\", \"Brave\";v=\"138\"\r\n"
 			// 	"sec-ch-ua-mobile: ?0\r\n"
@@ -97,7 +97,7 @@ void Config::launchServers() {
 			// 	"\r\n"
 			// 	"estbtrierogerovebbrogvierogiwebfperngpwofnoeibgrvoelrign;wefnpqeifwlrkgn;wekfnqlekfwlerkgnw\r\n"
 			// 	"------WebKitFormBoundarynGSd7qu4fkLSGPvS--\r\n";
-			// it->parseRequest(request);
+			// std::cout << "retour = " << it->parseRequest(request);
 		}
 	}
 	catch(const std::exception& e)

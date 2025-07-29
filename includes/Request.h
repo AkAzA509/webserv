@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/23 18:59:04 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/24 10:52:47 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,8 @@ private:
 	std::string m_content_length;
 	std::string m_body;
 	bool m_foundBody;
+	bool m_errorPage;
+	std::string m_responseStatus;
 public:
 	Request() {};
 	Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request);
@@ -51,6 +53,9 @@ public:
 	std::string getVersion() { return m_version; }
 	std::string getContentType() { return m_content_type; }
 	std::string getContentLength() { return m_content_length; }
+	std::string getResponseStatus() { return m_responseStatus; }
+	bool getIsFoundBody() { return m_foundBody; }
+	bool getErrorPage() { return m_errorPage; }
 	Location getLocation() { return m_loc; }
 };
 

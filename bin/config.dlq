@@ -33,14 +33,18 @@
 
 server {
 	listen 8080;
-	server_name ahh;
+	server_name localhost;
 	host 127.0.111.1;
-	root docs/fusion_web/;
+	root file/;
 	# client_max_body_size 3000000;
-	index index.html;
-	error_page 404 html/error_404.html;
+	index page/index.html;
+	error_page 404 file/error_pages/404.html;
 
 	location / {
+		allow_methods DELETE POST GET;
+		autoindex off;
+	}
+	location /style.css {
 		allow_methods DELETE POST GET;
 		autoindex off;
 	}
