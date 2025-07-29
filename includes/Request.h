@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/24 10:52:47 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/29 14:43:02 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,10 +36,7 @@ public:
 	Request& operator=(const Request& other);
 public:
 	void parseRequest(std::string& request);
-	void parseType(std::string& request);
-	void parseLenght(std::string& request);
-	void parseBody(std::string& request);
-	void parseCGI(std::string& request);
+	void writeFile(std::string& filename, std::string& file_data);
 public:
 	void methodePost(std::vector<std::string>& tab, std::string& request);
 	void methodeGet(std::vector<std::string>& tab, std::string& request);

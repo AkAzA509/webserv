@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:42:54 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/28 15:09:24 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/29 14:45:22 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,7 +92,8 @@ void Response::methodeWithBodyResponse() {
 }
 
 void Response::methodeWithinBodyResponse() {
-	
+	std::string empty;
+	fillResponse(empty, empty, m_req.getResponseStatus());
 }
 
 void Response::fillResponse(std::string type, std::string& file, std::string head) {
@@ -100,12 +101,13 @@ void Response::fillResponse(std::string type, std::string& file, std::string hea
 	oss << file.size();
 	std::string size = oss.str();
 	m_response = head;
-	if (type.empty()) {
+	if (!type.empty()) {
 		m_response += CONTENT_LENGHT + size + RETURN;
-		m_response += CONTENT_TYPE + type + RETURN;	
+		m_response += CONTENT_TYPE + type + RETURN;
 	}
+	m_response += LOCATION_ROOT;
 	m_response += CONNECTION_CLOSE;
 	m_response += RETURN;
-	if (file.empty())
+	if (!file.empty())
 		m_response += file;
 }

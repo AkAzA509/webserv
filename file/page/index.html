@@ -1,88 +1,89 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bienvenue chez Ma Biche</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>WebServ</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; }
+    section { border: 1px solid #ccc; border-radius: 6px; padding: 15px; margin: 20px 0; }
+    button { padding: 8px 16px; font-size: 16px; margin-top: 10px; }
+    input[type="file"] { margin-top: 10px; }
+    pre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    input[type="text"] { width: 100%; padding: 6px; margin-top: 5px; }
+  </style>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <h1>Ma Biche</h1>
-      <nav>
-        <ul>
-          <li><a href="#about">À propos</a></li>
-          <li><a href="#services">Services</a></li>
-          <li><a href="#gallery">Galerie</a></li>
-          <li><a href="#contact">Contact</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
+  <h1>Voici notre site pour tester WebServ</h1>
 
-  <main class="container">
-    <section id="about">
-      <h2>À propos de Ma Biche</h2>
-      <p>
-        Bienvenue sur le site de <strong>Ma Biche</strong>, un espace de douceur, d'inspiration et de créativité.
-        Ici, on partage des idées, des projets et un soupçon de magie numérique. Notre mission est simple :
-        apporter une touche d’élégance et de chaleur dans le monde du web.
-      </p>
-    </section>
+  <section>
+    <h2>POST</h2>
+    <form action="/post_file" method="POST" enctype="multipart/form-data">
+      <input type="file" name="file" required>
+      <button type="submit">Envoyer POST</button>
+    </form>
+  </section>
 
-    <section id="services">
-      <h2>Nos Services</h2>
-      <ul>
-        <li>Création de sites web statiques et modernes</li>
-        <li>Design responsive & mobile-first</li>
-        <li>Conseils en image de marque digitale</li>
-        <li>Contenu personnalisé avec amour 💌</li>
-      </ul>
-    </section>
+  <section>
+    <h2>PUT</h2>
+    <input type="file" id="putFile" required>
+    <button onclick="sendMultipartPut()">Envoyer PUT</button>
+  </section>
 
-    <section id="gallery">
-      <h2>Galerie</h2>
-      <div class="gallery">
-        <img src="https://via.placeholder.com/300x200?text=Biche+1" alt="Biche 1" />
-        <img src="https://via.placeholder.com/300x200?text=Biche+2" alt="Biche 2" />
-        <img src="https://via.placeholder.com/300x200?text=Biche+3" alt="Biche 3" />
-      </div>
-    </section>
+  <!-- DELETE -->
+  <section>
+    <h2>DELETE</h2>
+    <button onclick="sendRequest('DELETE')">Envoyer DELETE</button>
+  </section>
 
-    <section id="contact">
-      <h2>Contact</h2>
-      <form>
-        <label for="name">Nom</label>
-        <input type="text" id="name" name="name" required />
+  <!-- HEAD -->
+  <section>
+    <h2>HEAD</h2>
+    <button onclick="sendRequest('HEAD')">Envoyer HEAD</button>
+  </section>
 
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required />
+  <section>
+    <h2>Résultat</h2>
+    <pre id="result">Aucune requête encore envoyée.</pre>
+  </section>
 
-        <label for="message">Message</label>
-        <textarea id="message" name="message" rows="5" required></textarea>
+  <script>
+    function sendRequest(method) {
+      fetch('/test', { method: method })
+        .then(async res => {
+          const text = await res.text();
+          document.getElementById('result').textContent =
+            `${method} ${res.status} ${res.statusText}\n\n${text}`;
+        })
+        .catch(err => {
+          document.getElementById('result').textContent = 'Erreur : ' + err;
+        });
+    }
 
-        <button type="submit">Envoyer</button>
-      </form>
-    </section>
-  </main>
-  <h1>Uploader un fichier</h1>
-  <form action="/" method="POST" enctype="multipart/form-data">
-    <label for="file">Choisissez un fichier :</label>
-    <input type="file" name="file" id="file" required>
-    <br><br>
-    <input type="submit" value="Envoyer">
-  </form>
+    function sendMultipartPut() {
+      const fileInput = document.getElementById('putFile');
+      const file = fileInput.files[0];
+      if (!file) {
+        alert('Aucun fichier sélectionné');
+        return;
+      }
 
-  <footer>
-    <div class="container">
-      <p>© 2025 Ma Biche. Tous droits réservés.</p>
-      <p>Suivez-nous sur :
-        <a href="#">Instagram</a> |
-        <a href="#">Twitter</a> |
-        <a href="#">LinkedIn</a>
-      </p>
-    </div>
-  </footer>
+      const formData = new FormData();
+      formData.append('file', file); // même champ que celui attendu côté serveur
+
+      fetch('/put_file', {
+        method: 'PUT',
+        body: formData
+      })
+      .then(async res => {
+        const text = await res.text();
+        document.getElementById('result').textContent =
+          `PUT ${res.status} ${res.statusText}\n\n${text}`;
+      })
+      .catch(err => {
+        document.getElementById('result').textContent = 'Erreur : ' + err;
+      });
+    }
+  </script>
 </body>
 </html>
