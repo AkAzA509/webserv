@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   listen.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/28 14:12:30 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 17:15:12 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,12 +26,12 @@ bool Server::requestComplete(std::string& request) {
 	std::string headers = request.substr(0, crlf_pos);
 	std::transform(headers.begin(), headers.end(), headers.begin(), ::tolower);
 	
-	size_t content_length_pos = headers.find("content-length:");
+	size_t content_len_pos = headers.find("content-length:");
 	
-	if (content_length_pos == std::string::npos)
+	if (content_len_pos == std::string::npos)
 		return true;
 
-	size_t value_start = content_length_pos + 15;
+	size_t value_start = content_len_pos + 15;
 	size_t line_end = headers.find("\r\n", value_start);
 	if (line_end == std::string::npos)
 		return false;
@@ -96,7 +96,7 @@ Response Server::parseRequest(std::string& request) {
 	std::vector<std::string> request_lines = splitRequest(request);
 
 	if (request_lines.empty()) {
-		Logger::log(RED, "error request : empty request");
+		// Logger::log(RED, "error request : empty request");
 		std::string error = ERROR_400;
 		Response resp(error, *this);
 		return resp;
@@ -105,14 +105,26 @@ Response Server::parseRequest(std::string& request) {
 	std::vector<Location>::iterator it = m_locations.begin();
 	std::vector<std::string> words = split(request_lines[0], " ");
 
+	// First try exact match
 	while (it != m_locations.end()) {
 		if (words[1] == it->getPath())
 			break;
 		++it;
 	}
+	
+	// If no exact match found, try to find root location "/" as fallback
+	if (it == m_locations.end()) {
+		it = m_locations.begin();
+		while (it != m_locations.end()) {
+			if (it->getPath() == "/")
+				break;
+			++it;
+		}
+	}
+	
 	if (it == m_locations.end()) {
 		Logger::log(RED, "error location : location %s not found in the config file", words[1].c_str());
-		std::string error = ERROR_400;
+		std::string error = ERROR_404;
 		Response resp(error, *this);
 		return resp;
 	}

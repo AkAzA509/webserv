@@ -6,7 +6,7 @@
 /*   By: ChloeMontaigut <ChloeMontaigut@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/29 14:04:20 by ChloeMontai      ###   ########.fr       */
+/*   Updated: 2025/07/30 15:36:27 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -214,5 +214,6 @@ std::ostream& operator<<(std::ostream& os, const Location& loc)
 	os << "]\n";
 
 	os << "}";
+
 	return os;
 }

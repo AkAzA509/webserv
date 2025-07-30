@@ -34,24 +34,28 @@
 server {
 	listen 8080;
 	server_name localhost;
-	host 127.0.111.1;
+	host 127.0.0.1;
 	root file/;
 	# client_max_body_size 3000000;
 	index page/index.html;
 	error_page 404 file/error_pages/404.html;
 
 	location / {
-		allow_methods DELETE POST GET;
+		allow_methods GET HEAD POST;
 		autoindex off;
 	}
-	location /style.css {
-		allow_methods DELETE POST GET;
+	location /cookie-test {
+		index page/cookie-test.html
+		allow_methods GET HEAD POST;
 		autoindex off;
 	}
-	location /tours {
-		autoindex on;
-		index tours1.html;
-		allow_methods GET POST HEAD;
+	location /put_file {
+		allow_methods DELETE PUT;
+		autoindex off;
+	}
+	location /post_file {
+		allow_methods DELETE GET POST;
+		autoindex off;
 	}
 }
 
