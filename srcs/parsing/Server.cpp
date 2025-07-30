@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 12:23:32 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 17:56:37 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -219,5 +219,6 @@ std::ostream& operator<<(std::ostream& os, const Location& loc)
 	os << "]\n";
 
 	os << "}";
+
 	return os;
 }

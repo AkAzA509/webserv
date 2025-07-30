@@ -42,7 +42,12 @@ server {
 	error_page 404 file/error_pages/404.html;
 
 	location / {
-		allow_methods GET;
+		allow_methods GET HEAD POST;
+		autoindex off;
+	}
+	location /cookie-test {
+		index page/cookie-test.html
+		allow_methods GET HEAD POST;
 		autoindex off;
 	}
 	location /put_file {
@@ -50,7 +55,7 @@ server {
 		autoindex off;
 	}
 	location /post_file {
-		allow_methods DELETE POST;
+		allow_methods DELETE GET POST;
 		autoindex off;
 	}
 	location /cgi-bin {

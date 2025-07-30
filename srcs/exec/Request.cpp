@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 10:13:39 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:48:47 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 17:54:50 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,11 @@
 #include "Parser.h"
 #include "Logger.h"
 
+Request::Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request)
+: m_loc(loc), m_methode(firstRequestLine[0]), m_url(firstRequestLine[1]), m_version(firstRequestLine[2]), m_foundBody(false), m_errorPage(false), m_responseStatus(HEADER_OK) {
 
-
-Request::Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request, char **env)
-: m_loc(loc), m_methode(firstRequestLine[0]), m_url(firstRequestLine[1]), m_version(firstRequestLine[2]), m_foundBody(false), m_errorPage(false), m_responseStatus(HEADER_OK), m_env(env) {
+	// Parse headers from request
+	parseHeaders(request);
 
 	std::string methode_name[4] = {"GET", "POST", "DELETE", "PUT"};
 	void(Request::*fonction[])(std::vector<std::string>&, std::string&) = {&Request::methodeGet, &Request::methodePost, &Request::methodeDelete, &Request::methodePut};
@@ -120,8 +121,9 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 	while (std::getline(stream, line)) {
 		if (line.find("Content-Length:") == 0)
 			m_content_length = line.substr(15);
-		if (line.find("Content-Type:") == 0)
+		else if (line.find("Content-Type:") == 0)
 			m_content_type = line.substr(13);
+		// Note: Cookie parsing is already handled by parseHeaders() in constructor
 	}
 	if (m_content_length.empty() || std::atoi(m_content_length.c_str()) == 0) {
 		m_errorPage = true;
@@ -356,6 +358,69 @@ void Request::methodePut(std::vector<std::string>& tab, std::string& full_reques
 	m_responseStatus = HEADER_201;
 
 	writeFile(filename, file_data);
+	m_responseStatus = HEADER_303;
+}
+
+std::string Request::getHeader(const std::string& name) const {
+    std::map<std::string, std::string>::const_iterator it = m_headers.find(name);
+    if (it != m_headers.end()) {
+        return it->second;
+    }
+    return "";
+}
+
+void Request::parseHeaders(const std::vector<std::string>& request) {
+    // Parse headers from request lines (skip first line which is method/url/version)
+    for (size_t i = 1; i < request.size(); ++i) {
+        const std::string& line = request[i];
+        if (line.empty()) break; // End of headers
+        
+        size_t colon_pos = line.find(':');
+        if (colon_pos != std::string::npos) {
+            std::string name = line.substr(0, colon_pos);
+            std::string value = line.substr(colon_pos + 1);
+            
+            // Trim spaces
+            size_t start = value.find_first_not_of(" \t");
+            size_t end = value.find_last_not_of(" \t");
+            if (start != std::string::npos && end != std::string::npos) {
+                value = value.substr(start, end - start + 1);
+            }
+            
+            m_headers[name] = value;
+        }
+    }
+}
+
+std::string Request::getHeader(const std::string& name) const {
+    std::map<std::string, std::string>::const_iterator it = m_headers.find(name);
+    if (it != m_headers.end()) {
+        return it->second;
+    }
+    return "";
+}
+
+void Request::parseHeaders(const std::vector<std::string>& request) {
+    // Parse headers from request lines (skip first line which is method/url/version)
+    for (size_t i = 1; i < request.size(); ++i) {
+        const std::string& line = request[i];
+        if (line.empty()) break; // End of headers
+        
+        size_t colon_pos = line.find(':');
+        if (colon_pos != std::string::npos) {
+            std::string name = line.substr(0, colon_pos);
+            std::string value = line.substr(colon_pos + 1);
+            
+            // Trim spaces
+            size_t start = value.find_first_not_of(" \t");
+            size_t end = value.find_last_not_of(" \t");
+            if (start != std::string::npos && end != std::string::npos) {
+                value = value.substr(start, end - start + 1);
+            }
+            
+            m_headers[name] = value;
+        }
+    }
 }
 
 std::ostream& operator<<(std::ostream& o, Request& req)
