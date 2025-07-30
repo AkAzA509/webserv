@@ -11,6 +11,7 @@
 #include <poll.h>
 #include <sys/epoll.h>
 #include <netinet/in.h>
+#include <numeric>
 #include <cstdio>
 #include <string.h>
 #include <unistd.h>
@@ -151,6 +152,7 @@ class Server
 		void addLocation(Location& loc);
 		void removeLocation(size_t idx);
 		void removeSocket(int idx);
+		inline void setClientMaxBodySize(int size) { m_Client_max_body_size = size; }
 };
 
 std::ostream& operator<<(std::ostream& o, const Location& loc);

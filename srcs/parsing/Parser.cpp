@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ChloeMontaigut <ChloeMontaigut@student.    +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/29 14:24:47 by ChloeMontai      ###   ########.fr       */
+/*   Updated: 2025/07/30 19:42:54 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -523,7 +523,7 @@ Server Parser::parseServer(const std::string& data) const
 			}
 			else if (dir.name == "client_max_body_size")
 			{
-				server.setClientMaxBodySize(parseClientBodySize(dir))
+				server.setClientMaxBodySize(parseClientBodySize(dir));
 			}
 		}
 
