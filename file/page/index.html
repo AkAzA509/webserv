@@ -24,6 +24,22 @@
     </form>
   </section>
 
+  <div class="container">
+    <h2>Select a Color to Change the Page Background</h2>
+    <form action="./cgi-bin/change_color.sh" method="post">
+        <label for="color">Choose a color:</label>
+        <select id="color" name="color">
+            <option value="red">Red</option>
+            <option value="blue">Blue</option>
+            <option value="green">Green</option>
+            <option value="yellow">Yellow</option>
+            <option value="purple">Purple</option>
+        </select>
+        <br><br>
+        <input class="button" type="submit" value="Submit">
+    </form>
+  </div>
+
   <section>
     <h2>PUT</h2>
     <input type="file" id="putFile" required>
