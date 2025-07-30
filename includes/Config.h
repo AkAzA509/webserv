@@ -18,10 +18,11 @@ class Config
 	private:
 		int m_ArgCount;
 		std::string m_FileName;
+		char **m_ep;
 		std::vector<Server> m_Servers;
 		void parseConfigFile();
 	public:
-		Config(int ac, char **av);
+		Config(int ac, char **av, char **ep);
 		std::vector<Server>& getServer();
 		void launchServers();
 		~Config();

@@ -24,9 +24,8 @@ extern volatile sig_atomic_t sig;
 
 #define MAX_EVENT 100
 
-#define DEFAULT_CLIENT_MAX_BODY_SIZE 1_000_000  
-
 #define HEADER_OK "HTTP/1.1 200 OK\r\n"
+#define HEADER_201 "HTTP/1.1 201 Created\r\n"
 #define HEADER_303 "HTTP/1.1 303 See Other\r\n"
 #define ERROR_400 "HTTP/1.1 400 Bad request\r\n"
 #define ERROR_403 "HTTP/1.1 403 Forbidden\r\n"
@@ -43,6 +42,7 @@ extern volatile sig_atomic_t sig;
 #define CONTENT_TYPE "Content-Type: "
 #define CONTENT_LENGHT "Content-Length: "
 #define RETURN "\r\n"
+#define LOCATION_ROOT "Location: / \r\n"
 #define LOCATION_ROOT "Location: / \r\n"
 #define CONNECTION_CLOSE "Connection: close\r\n"
 
@@ -107,7 +107,9 @@ struct ClientState {
 class Server
 {
 	private:
+		char **m_ep;
 		std::vector<int> m_socketFd;
+		size_t m_Client_max_body_size;
 		std::vector<size_t> m_port;
 		std::string m_serverName;
 		std::string m_hostIp;
@@ -150,6 +152,7 @@ class Server
 		void addLocation(Location& loc);
 		void removeLocation(size_t idx);
 		void removeSocket(int idx);
+		void setClientMaxBodySize(size_t size);
 };
 
 std::ostream& operator<<(std::ostream& o, const Location& loc);

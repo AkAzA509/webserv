@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/29 14:43:02 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 17:48:09 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,21 +28,24 @@ private:
 	bool m_foundBody;
 	bool m_errorPage;
 	std::string m_responseStatus;
+	char **m_env;
 public:
 	Request() {};
-	Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request);
+	Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request, char **env);
 	~Request() {};
 	Request(const Request& copy);
 	Request& operator=(const Request& other);
 public:
 	void parseRequest(std::string& request);
 	void writeFile(std::string& filename, std::string& file_data);
+	void writeFile(std::string& filename, std::string& file_data);
 public:
 	void methodePost(std::vector<std::string>& tab, std::string& request);
 	void methodeGet(std::vector<std::string>& tab, std::string& request);
 	void methodeDelete(std::vector<std::string>& tab, std::string& request);
 	void methodePut(std::vector<std::string>& tab, std::string& request);
-	void methodeHead(std::vector<std::string>& tab, std::string& request);
+	void doCGI(size_t end_header, std::string& request);
+	std::vector<std::string>& convertEnv();
 public:
 	std::string getBody() { return m_body; }
 	std::string getMethod() { return m_methode; }

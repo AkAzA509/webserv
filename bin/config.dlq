@@ -11,7 +11,7 @@
 #		allow_methods DELETE POST GET;
 #		autoindex off;
 #	}
-#	
+#
 #	location /tours {
 #		autoindex on;
 #		index tours1.html;
@@ -19,7 +19,7 @@
 #	}
 #
 #	location /red {
-#		return /tours;
+#		return /;
 #	}
 #
 #	location /cgi-bin {
@@ -35,13 +35,14 @@ server {
 	listen 8080;
 	server_name localhost;
 	host 127.0.0.1;
+	host 127.0.0.1;
 	root file/;
-	# client_max_body_size 3000000;
+	client_max_body_size 30000;
 	index page/index.html;
 	error_page 404 file/error_pages/404.html;
 
 	location / {
-		allow_methods GET HEAD;
+		allow_methods GET;
 		autoindex off;
 	}
 	location /put_file {
@@ -52,5 +53,11 @@ server {
 		allow_methods DELETE POST;
 		autoindex off;
 	}
+	location /cgi-bin {
+		root ./;
+		allow_methods POST;
+		index change_color.py;
+		cgi_path /usr/bin/python3 ;
+		cgi_ext .py;
+	}
 }
-

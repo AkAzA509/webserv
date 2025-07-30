@@ -3,17 +3,19 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/22 20:18:47 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/30 12:23:32 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.h"
+#include <numeric>
+#include <limits>
 #include "Logger.h"
 
-Server::Server() {}
+Server::Server() : m_Client_max_body_size(1000000) {}
 Server::~Server() {}
 
 void Server::addPort(size_t port)
@@ -96,6 +98,10 @@ void Server::removeSocket(int idx)
 		close(m_socketFd[idx]);
 		m_socketFd.erase(m_socketFd.begin() + idx);
 	}
+}
+
+void Server::setClientMaxBodySize(size_t size) {
+	m_Client_max_body_size = size;
 }
 
 std::vector<std::string> splitRequest(const std::string& str) {
