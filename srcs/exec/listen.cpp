@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   listen.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/29 14:04:15 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 17:15:12 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,11 +105,23 @@ Response Server::parseRequest(std::string& request) {
 	std::vector<Location>::iterator it = m_locations.begin();
 	std::vector<std::string> words = split(request_lines[0], " ");
 
+	// First try exact match
 	while (it != m_locations.end()) {
 		if (words[1] == it->getPath())
 			break;
 		++it;
 	}
+	
+	// If no exact match found, try to find root location "/" as fallback
+	if (it == m_locations.end()) {
+		it = m_locations.begin();
+		while (it != m_locations.end()) {
+			if (it->getPath() == "/")
+				break;
+			++it;
+		}
+	}
+	
 	if (it == m_locations.end()) {
 		Logger::log(RED, "error location : location %s not found in the config file", words[1].c_str());
 		std::string error = ERROR_404;

@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/22 20:18:47 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/30 15:36:27 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -213,5 +213,6 @@ std::ostream& operator<<(std::ostream& os, const Location& loc)
 	os << "]\n";
 
 	os << "}";
+
 	return os;
 }

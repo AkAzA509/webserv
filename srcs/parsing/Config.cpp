@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/28 10:04:49 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 16:21:31 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -71,6 +71,7 @@ void Config::launchServers() {
 			// std::string request =
 			// 	"POST / HTTP/1.1\r\n"
 			// 	"Host: localhost:8080\r\n"
+			// 	"Cookie: session_id=abc123; theme=dark; logged_in=true\r\n"
 			// 	"Connection: keep-alive\r\n"
 			// 	"Content-Length:\r\n"
 			// 	"Cache-Control: max-age=0\r\n"
@@ -97,7 +98,7 @@ void Config::launchServers() {
 			// 	"\r\n"
 			// 	"estbtrierogerovebbrogvierogiwebfperngpwofnoeibgrvoelrign;wefnpqeifwlrkgn;wekfnqlekfwlerkgnw\r\n"
 			// 	"------WebKitFormBoundarynGSd7qu4fkLSGPvS--\r\n";
-			// std::cout << "retour = " << it->parseRequest(request);
+			// 	Response res = it->parseRequest(request);
 		}
 	}
 	catch(const std::exception& e)

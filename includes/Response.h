@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:43:15 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/28 14:42:36 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 17:15:12 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,9 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
+#include <ctime>
+#include <sstream>
 #include "Server.h"
 #include "Request.h"
 
@@ -22,12 +25,20 @@ private:
 	std::string m_response;
 	Request m_req;
 	Server m_serv;
+	std::map<std::string, std::string> m_cookies_to_set; // New member for cookies to send
 public:
 	std::string getResponse();
 	void isErrorPage(std::string& error);
 	void fillResponse(std::string type, std::string& file, std::string head);
 	void methodeWithBodyResponse();
 	void methodeWithinBodyResponse();
+	
+	// Cookie methods
+	void setCookie(const std::string& name, const std::string& value, 
+	               const std::string& path = "/", int max_age = -1);
+	void addCookieHeader();
+	std::string getCurrentTimestamp();
+	
 public:
 	Response() {};
 	Response(Request req, Server serv);
