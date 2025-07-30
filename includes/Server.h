@@ -153,6 +153,7 @@ class Server
 		void removeLocation(size_t idx);
 		void removeSocket(int idx);
 		void setClientMaxBodySize(size_t size);
+		void addEnv(char **ep);
 };
 
 std::ostream& operator<<(std::ostream& o, const Location& loc);

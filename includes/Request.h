@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:56:23 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 18:06:29 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,6 @@ public:
 public:
 	void parseRequest(std::string& request);
 	void writeFile(std::string& filename, std::string& file_data);
-	void writeFile(std::string& filename, std::string& file_data);
 	std::string getHeader(const std::string& name) const; // Add getHeader method
 	void parseHeaders(const std::vector<std::string>& request); // Add parseHeaders method
 public:
@@ -48,7 +47,7 @@ public:
 	void methodeDelete(std::vector<std::string>& tab, std::string& request);
 	void methodePut(std::vector<std::string>& tab, std::string& request);
 	void doCGI(size_t end_header, std::string& request);
-	std::vector<std::string>& convertEnv();
+	std::vector<std::string> convertEnv();
 public:
 	std::string getBody() { return m_body; }
 	std::string getMethod() { return m_methode; }

@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:55:13 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 18:03:32 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,13 +27,10 @@ bool Server::requestComplete(std::string& request) {
 	std::transform(headers.begin(), headers.end(), headers.begin(), ::tolower);
 	
 	size_t content_len_pos = headers.find("content-length:");
-	size_t content_len_pos = headers.find("content-length:");
 	
-	if (content_len_pos == std::string::npos)
 	if (content_len_pos == std::string::npos)
 		return true;
 
-	size_t value_start = content_len_pos + 15;
 	size_t value_start = content_len_pos + 15;
 	size_t line_end = headers.find("\r\n", value_start);
 	if (line_end == std::string::npos)
@@ -128,7 +125,6 @@ Response Server::parseRequest(std::string& request) {
 	
 	if (it == m_locations.end()) {
 		Logger::log(RED, "error location : location %s not found in the config file", words[1].c_str());
-		std::string error = ERROR_404;
 		std::string error = ERROR_404;
 		Response resp(error, *this);
 		return resp;

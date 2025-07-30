@@ -19,7 +19,6 @@ SRCS      = $(SRC_DIR)/main.cpp \
             $(SRC_DIR)/parsing/Parser.cpp \
             $(SRC_DIR)/parsing/Server.cpp \
 			$(SRC_DIR)/parsing/Logger.cpp \
-			$(SRC_DIR)/exec/init_connection.cpp \
 			$(SRC_DIR)/exec/sig.cpp \
 			$(SRC_DIR)/exec/listen.cpp \
 			$(SRC_DIR)/exec/Request.cpp \

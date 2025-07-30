@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/30 17:56:04 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 17:57:28 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,6 @@ void Config::parseConfigFile()
 		throw std::runtime_error("Couldn't open " + m_FileName);
 	
 	m_Servers = m_Parser.parse(infile, m_ep);
-	m_Servers
 	// for (std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it)
 	// {
 	// 	Server s = *it;

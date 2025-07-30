@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 10:13:39 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:54:50 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 18:08:17 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,8 @@
 #include "Parser.h"
 #include "Logger.h"
 
-Request::Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request)
-: m_loc(loc), m_methode(firstRequestLine[0]), m_url(firstRequestLine[1]), m_version(firstRequestLine[2]), m_foundBody(false), m_errorPage(false), m_responseStatus(HEADER_OK) {
+Request::Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request, char **env)
+: m_loc(loc), m_methode(firstRequestLine[0]), m_url(firstRequestLine[1]), m_version(firstRequestLine[2]), m_foundBody(false), m_errorPage(false), m_responseStatus(HEADER_OK), m_env(env) {
 
 	// Parse headers from request
 	parseHeaders(request);
@@ -59,7 +59,7 @@ Request& Request::operator=(const Request &other) {
 	return *this;
 }
 
-std::vector<std::string>& Request::convertEnv() {
+std::vector<std::string> Request::convertEnv() {
 	std::vector<std::string> env;
 	
 	for (size_t i = 0; m_env[i]; i++)
@@ -89,8 +89,8 @@ void Request::doCGI(size_t end_header, std::string& request) {
 	}
 
 	pid_t pid = fork();
-	if(pid == 0) {
-		dup2();
+	if (pid == 0) {
+		// dup2();
 		execve("./cgi-bin/change_color.sh", av, new_env.data());
 	}
 }
@@ -362,65 +362,34 @@ void Request::methodePut(std::vector<std::string>& tab, std::string& full_reques
 }
 
 std::string Request::getHeader(const std::string& name) const {
-    std::map<std::string, std::string>::const_iterator it = m_headers.find(name);
-    if (it != m_headers.end()) {
-        return it->second;
-    }
-    return "";
+	std::map<std::string, std::string>::const_iterator it = m_headers.find(name);
+	if (it != m_headers.end()) {
+		return it->second;
+	}
+	return "";
 }
 
 void Request::parseHeaders(const std::vector<std::string>& request) {
-    // Parse headers from request lines (skip first line which is method/url/version)
-    for (size_t i = 1; i < request.size(); ++i) {
-        const std::string& line = request[i];
-        if (line.empty()) break; // End of headers
-        
-        size_t colon_pos = line.find(':');
-        if (colon_pos != std::string::npos) {
-            std::string name = line.substr(0, colon_pos);
-            std::string value = line.substr(colon_pos + 1);
-            
-            // Trim spaces
-            size_t start = value.find_first_not_of(" \t");
-            size_t end = value.find_last_not_of(" \t");
-            if (start != std::string::npos && end != std::string::npos) {
-                value = value.substr(start, end - start + 1);
-            }
-            
-            m_headers[name] = value;
-        }
-    }
-}
-
-std::string Request::getHeader(const std::string& name) const {
-    std::map<std::string, std::string>::const_iterator it = m_headers.find(name);
-    if (it != m_headers.end()) {
-        return it->second;
-    }
-    return "";
-}
-
-void Request::parseHeaders(const std::vector<std::string>& request) {
-    // Parse headers from request lines (skip first line which is method/url/version)
-    for (size_t i = 1; i < request.size(); ++i) {
-        const std::string& line = request[i];
-        if (line.empty()) break; // End of headers
-        
-        size_t colon_pos = line.find(':');
-        if (colon_pos != std::string::npos) {
-            std::string name = line.substr(0, colon_pos);
-            std::string value = line.substr(colon_pos + 1);
-            
-            // Trim spaces
-            size_t start = value.find_first_not_of(" \t");
-            size_t end = value.find_last_not_of(" \t");
-            if (start != std::string::npos && end != std::string::npos) {
-                value = value.substr(start, end - start + 1);
-            }
-            
-            m_headers[name] = value;
-        }
-    }
+	// Parse headers from request lines (skip first line which is method/url/version)
+	for (size_t i = 1; i < request.size(); ++i) {
+		const std::string& line = request[i];
+		if (line.empty()) break; // End of headers
+		
+		size_t colon_pos = line.find(':');
+		if (colon_pos != std::string::npos) {
+			std::string name = line.substr(0, colon_pos);
+			std::string value = line.substr(colon_pos + 1);
+			
+			// Trim spaces
+			size_t start = value.find_first_not_of(" \t");
+			size_t end = value.find_last_not_of(" \t");
+			if (start != std::string::npos && end != std::string::npos) {
+				value = value.substr(start, end - start + 1);
+			}
+			
+			m_headers[name] = value;
+		}
+	}
 }
 
 std::ostream& operator<<(std::ostream& o, Request& req)

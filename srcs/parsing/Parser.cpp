@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/30 15:56:44 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 18:01:28 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -476,6 +476,9 @@ size_t Parser::parseClientBodySize(const Directive& dir) const
 	return static_cast<size_t>(num);
 }
 
+void Server::addEnv(char **ep) {
+	m_ep = ep;
+}
 
 Server Parser::parseServer(const std::string& data, char **ep) const
 {
@@ -483,7 +486,7 @@ Server Parser::parseServer(const std::string& data, char **ep) const
 	std::vector<std::string> lines = splitLines(data);
 	size_t brace_level = 0;
 	bool in_server_block = true;
-	sever/addEnv(ep)
+	server.addEnv(ep);
 
 	for (size_t i = 0; i < lines.size(); i++)
 	{
@@ -555,7 +558,7 @@ void Parser::makeServers(const std::string& fileData, char **ep)
 		if (start >= end)
 			throw std::runtime_error("Invalid server block scope");
 		
-		m_Servers.push_back(parseServer(fileData.substr(start, end - start, ep)));
+		m_Servers.push_back(parseServer(fileData.substr(start, end - start), ep));
 		pos = end + 1;
 	}
 }
