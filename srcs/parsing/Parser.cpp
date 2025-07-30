@@ -3,17 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: ChloeMontaigut <ChloeMontaigut@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/22 12:50:09 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/29 14:24:47 by ChloeMontai      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Parser.h"
 #include "Logger.h"
 #include <limits>
-#include <stack>
 
 Parser::Parser()
 {
@@ -446,6 +445,35 @@ std::string Parser::parseRoot(const Directive& dir) const
 	return dir.args[0];
 }
 
+int Parser::parseClientBodySize(const Directive& dir) const
+{
+	if (dir.args.size() != 1)
+	{
+		std::ostringstream o;
+		o << "'Client_max_body_size' requires exactly one argument at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+
+	char *end;
+	
+	errno = 0;
+	long num = strtol(dir.args[0].c_str(), &end, 10);
+	if (end)
+	{
+		std::ostringstream o;
+		o << "'Client_max_body_size' requires only a number as a size at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+
+	if (errno == ERANGE || (num > std::numeric_limits<int>::max() || num < std::numeric_limits<int>::min()))
+	{
+		std::ostringstream o;
+		o << "'Client_max_body_size' requires only a INTEGER at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+	return (static_cast<int>(num));
+}
+
 Server Parser::parseServer(const std::string& data) const
 {
 	Server server;
@@ -492,6 +520,10 @@ Server Parser::parseServer(const std::string& data) const
 			{
 				std::pair<int, std::string> result = parseErrorPage(dir);
 				server.addErrorPage(result.first, result.second);
+			}
+			else if (dir.name == "client_max_body_size")
+			{
+				server.setClientMaxBodySize(parseClientBodySize(dir))
 			}
 		}
 

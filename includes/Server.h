@@ -108,6 +108,7 @@ class Server
 {
 	private:
 		std::vector<int> m_socketFd;
+		int m_Client_max_body_size;
 		std::vector<size_t> m_port;
 		std::string m_serverName;
 		std::string m_hostIp;

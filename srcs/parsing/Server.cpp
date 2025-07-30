@@ -3,7 +3,7 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ChloeMontaigut <ChloeMontaigut@student.    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
 /*   Updated: 2025/07/30 15:36:27 by macorso          ###   ########.fr       */
@@ -11,9 +11,10 @@
 /* ************************************************************************** */
 
 #include "Server.h"
+#include <numeric>
 #include "Logger.h"
 
-Server::Server() {}
+Server::Server() : m_Client_max_body_size(std::numeric_limits<int>::max()) {}
 Server::~Server() {}
 
 void Server::addPort(size_t port)

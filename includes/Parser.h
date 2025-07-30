@@ -30,6 +30,7 @@ class Parser
 		std::pair<int, std::string> parseErrorPage(const Directive& dir) const;
 		std::string parseHost(const Directive& dir) const;
 		std::string parseRoot(const Directive& dir) const;
+		int parseClientBodySize(const Directive& dir) const;
 		void makeServers(const std::string& fileData);
 		void (*getCorrespondingMethod(const std::string& str) const)(Request&, Response&);
 	public:
