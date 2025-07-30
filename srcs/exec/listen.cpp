@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   listen.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:15:12 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/30 18:03:32 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,11 +73,11 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 			return true;
 		}
 		
-		// if (client.request_buffer.size() > max body size) {
-		// 	Logger::log(RED, "Requête trop grande du client fd=%d", client_fd);
-		// 	cleanupClient(epfd, client_fd, ev);
-		// 	return false;
-		// }
+		if (client.request_buffer.size() > m_Client_max_body_size) {
+			Logger::log(RED, "error request : request size overflow the max size in the config file");
+			cleanupClient(epfd, client_fd, ev);
+			return false;
+		}
 		return false;
 	}
 	else if (query == 0) {
@@ -96,6 +96,7 @@ Response Server::parseRequest(std::string& request) {
 	std::vector<std::string> request_lines = splitRequest(request);
 
 	if (request_lines.empty()) {
+		// Logger::log(RED, "error request : empty request");
 		// Logger::log(RED, "error request : empty request");
 		std::string error = ERROR_400;
 		Response resp(error, *this);
@@ -128,7 +129,7 @@ Response Server::parseRequest(std::string& request) {
 		Response resp(error, *this);
 		return resp;
 	}
-	Request req(*it, words, request_lines, request);
+	Request req(*it, words, request_lines, request, m_ep);
 	Response resp(req, *this);
 	return resp;
 }
@@ -141,7 +142,6 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 		int fd = ev[i].data.fd;
 
 		if (std::find(socketFd.begin(), socketFd.end(), fd) != socketFd.end()) {
-			// C'est un socket serveur -> nouvelle connexion
 			struct sockaddr_in client_addr;
 			socklen_t client_len = sizeof(client_addr);
 
@@ -156,25 +156,18 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 					break;
 				}
 			}
-			
-			// Rendre le socket client non-bloquant
 			int flags = fcntl(client_fd, F_GETFL, 0);
 			if (flags != -1) {
 				fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
 			}
-			
 			addEpollClient(client_fd, epfd, socketFd);
 		}
 		else {
-			// C'est un client -> données à lire
 			if (recvClient(epfd, ev[i], fd)) {
-				// La requête est complète, on peut la traiter
 				std::string request = getClientRequest(fd);
 				if (!request.empty()) {
 					Response resp = parseRequest(request);
 					sendClient(resp, fd);
-					
-					// Nettoyer le client après envoi de la réponse
 					cleanupClient(epfd, fd, ev[i]);
 				}
 			}
@@ -201,5 +194,32 @@ void Server::waitConnection() {
 			print_error("epoll_wait failed", m_socketFd);
 		}
 		acceptClient(ready, m_socketFd, ev, epfd);
+	}
+}
+
+void Server::setupSocket() {
+	int opt = 1, i = 0;
+
+	for (std::vector<size_t>::iterator it = m_port.begin(); it != m_port.end() && !sig; ++it, ++i) {
+		int sokFd = socket(AF_INET, SOCK_STREAM, 0);
+		if (sokFd < 0)
+			print_error("Error creation socket", m_socketFd);
+		if (setsockopt(sokFd, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(opt)) < 0)
+			print_error("Error socket init", m_socketFd);
+
+		struct sockaddr_in addr;
+		memset(&addr, 0, sizeof(addr));
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons(static_cast<uint16_t>(*it));
+		addr.sin_addr.s_addr = INADDR_ANY;
+
+		if (bind(sokFd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+			perror("bind");
+			print_error("binding fail", m_socketFd);
+		}
+		if (listen(sokFd, SOMAXCONN) < 0)
+			print_error("listening", m_socketFd);
+
+		m_socketFd.push_back(sokFd);
 	}
 }

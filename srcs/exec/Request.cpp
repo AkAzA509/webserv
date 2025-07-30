@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 10:13:39 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:15:08 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/30 18:08:17 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,16 +14,14 @@
 #include "Parser.h"
 #include "Logger.h"
 
-
-
-Request::Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request)
-: m_loc(loc), m_methode(firstRequestLine[0]), m_url(firstRequestLine[1]), m_version(firstRequestLine[2]), m_foundBody(false), m_errorPage(false), m_responseStatus(HEADER_OK) {
+Request::Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request, char **env)
+: m_loc(loc), m_methode(firstRequestLine[0]), m_url(firstRequestLine[1]), m_version(firstRequestLine[2]), m_foundBody(false), m_errorPage(false), m_responseStatus(HEADER_OK), m_env(env) {
 
 	// Parse headers from request
 	parseHeaders(request);
 
-	std::string methode_name[5] = {"GET", "POST", "DELETE", "HEAD", "PUT"};
-	void(Request::*fonction[])(std::vector<std::string>&, std::string&) = {&Request::methodeGet, &Request::methodePost, &Request::methodeDelete, &Request::methodeHead, &Request::methodePut};
+	std::string methode_name[4] = {"GET", "POST", "DELETE", "PUT"};
+	void(Request::*fonction[])(std::vector<std::string>&, std::string&) = {&Request::methodeGet, &Request::methodePost, &Request::methodeDelete, &Request::methodePut};
 
 	if (!m_loc.isAllowedMethode(m_methode)) {
 		Logger::log(RED, "methode %s not autorized for this location", m_methode.c_str());
@@ -61,6 +59,42 @@ Request& Request::operator=(const Request &other) {
 	return *this;
 }
 
+std::vector<std::string> Request::convertEnv() {
+	std::vector<std::string> env;
+	
+	for (size_t i = 0; m_env[i]; i++)
+		env.push_back(m_env[i]);
+	return env;
+}
+
+void Request::doCGI(size_t end_header, std::string& request) {
+	std::vector<std::string> env;
+	char *av[] = { (char *)"./cgi-bin/change_color.sh", NULL };
+	int fd[2];
+
+	env = convertEnv();
+
+	env.push_back("REQUEST_METHOD=" + m_methode);
+	env.push_back("CONTENT_LENGTH=" + request.substr(end_header).size());
+	env.push_back("SERVER_PROTOCOL=HTTP/1.1");
+
+	std::vector<char *> new_env;
+	for (size_t i = 0; i < env.size(); ++i)
+		new_env.push_back(const_cast<char *>(env[i].c_str()));
+	new_env.push_back(NULL);
+
+	if (pipe(fd)) {
+		Logger::log(RED, "error pipe : pipe failed");
+		return ;
+	}
+
+	pid_t pid = fork();
+	if (pid == 0) {
+		// dup2();
+		execve("./cgi-bin/change_color.sh", av, new_env.data());
+	}
+}
+
 void Request::methodePost(std::vector<std::string>& tab, std::string& full_request) {
 	(void)tab;
 
@@ -71,6 +105,11 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
 		return;
+	}
+	
+	if (m_url.find("cgi-bin")) {
+		doCGI(header_end + 4, full_request);
+		return ;
 	}
 
 	std::string headers = full_request.substr(0, header_end);
@@ -90,6 +129,7 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		m_errorPage = true;
 		m_responseStatus = ERROR_411;
 		return;
+		return;
 	}
 
 	// cherche le boundary et le stock avec l'ajout de '--' avant
@@ -99,6 +139,7 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		Logger::log(WHITE, "error request build: boundary not found in header");
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
+		return;
 		return;
 	}
 	std::string boundary = "--" + m_content_type.substr(b_pos + boundary_key.size());
@@ -113,6 +154,7 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
 		return;
+		return;
 	}
 	
 	part_start += boundary.length() + 2;
@@ -123,6 +165,7 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		Logger::log(WHITE, "error request build: missing Content-disposition");
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
+		return;
 		return;
 	}
 	std::string part_header = body.substr(part_start, part_header_end - part_start);
@@ -148,6 +191,7 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
 		return;
+		return;
 	}
 
 	if (data_end >= 2 && body.substr(data_end - 2, 2) == "\r\n")
@@ -156,8 +200,9 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 	// extrait le binaire du body et l'ecrit dans le fichier correspondant
 	std::string file_data = body.substr(data_start, data_end - data_start);
 
+	m_responseStatus = HEADER_201;
+
 	writeFile(filename, file_data);
-	m_responseStatus = HEADER_303;
 }
 
 
@@ -167,6 +212,12 @@ void Request::methodeGet(std::vector<std::string>& tab, std::string& request) {
 		std::string line = *it;
 
 		std::vector<std::string> words = split(line, " ");
+		if (!words.empty()) {
+			if (words[0] == "Content-Length:")
+				m_content_length = words[1];
+			if (words[0] == "Content-Type:")
+				m_content_type = words[1];
+		}
 		if (!words.empty()) {
 			if (words[0] == "Content-Length:")
 				m_content_length = words[1];
@@ -184,22 +235,28 @@ void Request::methodeDelete(std::vector<std::string>& tab, std::string& request)
 
 }
 
-void Request::methodeHead(std::vector<std::string>& tab, std::string& full_request) {
-	(void)tab;
-	(void)full_request;
-}
-
 void Request::writeFile(std::string& filename, std::string& file_data) {
 	std::string path = m_loc.getPath() + "/" + filename;
 	if (path[0] == '/')
 		path.erase(0, 1);
-	std::ofstream out(path.c_str(), std::ios::binary);
+
+	if (access(path.c_str(), F_OK) == 0 && access(path.c_str(), W_OK) != 0) {
+		Logger::log(RED, "error open : permission denied to open %s !", filename.c_str());
+		m_errorPage = true;
+		m_responseStatus = ERROR_500;
+		return;
+	}
+	if (access(path.c_str(), F_OK) == 0)
+		m_responseStatus = HEADER_OK;
+
+	std::ofstream out(path.c_str(), std::ios::binary | std::ios::trunc);
 	if (!out.is_open()) {
-		Logger::log(RED, "error open : the location path not existing post failed !");
+		Logger::log(RED, "error open : the location path not existing upload failed !");
 		m_errorPage = true;
 		m_responseStatus = ERROR_404;
 		return;
 	}
+
 	out.write(file_data.data(), file_data.size());
 	out.close();
 }
@@ -298,40 +355,41 @@ void Request::methodePut(std::vector<std::string>& tab, std::string& full_reques
 	// extrait le binaire du body et l'ecrit dans le fichier correspondant
 	std::string file_data = body.substr(data_start, data_end - data_start);
 
-	writeFile(filename, file_data);
+	m_responseStatus = HEADER_201;
 
+	writeFile(filename, file_data);
 	m_responseStatus = HEADER_303;
 }
 
 std::string Request::getHeader(const std::string& name) const {
-    std::map<std::string, std::string>::const_iterator it = m_headers.find(name);
-    if (it != m_headers.end()) {
-        return it->second;
-    }
-    return "";
+	std::map<std::string, std::string>::const_iterator it = m_headers.find(name);
+	if (it != m_headers.end()) {
+		return it->second;
+	}
+	return "";
 }
 
 void Request::parseHeaders(const std::vector<std::string>& request) {
-    // Parse headers from request lines (skip first line which is method/url/version)
-    for (size_t i = 1; i < request.size(); ++i) {
-        const std::string& line = request[i];
-        if (line.empty()) break; // End of headers
-        
-        size_t colon_pos = line.find(':');
-        if (colon_pos != std::string::npos) {
-            std::string name = line.substr(0, colon_pos);
-            std::string value = line.substr(colon_pos + 1);
-            
-            // Trim spaces
-            size_t start = value.find_first_not_of(" \t");
-            size_t end = value.find_last_not_of(" \t");
-            if (start != std::string::npos && end != std::string::npos) {
-                value = value.substr(start, end - start + 1);
-            }
-            
-            m_headers[name] = value;
-        }
-    }
+	// Parse headers from request lines (skip first line which is method/url/version)
+	for (size_t i = 1; i < request.size(); ++i) {
+		const std::string& line = request[i];
+		if (line.empty()) break; // End of headers
+		
+		size_t colon_pos = line.find(':');
+		if (colon_pos != std::string::npos) {
+			std::string name = line.substr(0, colon_pos);
+			std::string value = line.substr(colon_pos + 1);
+			
+			// Trim spaces
+			size_t start = value.find_first_not_of(" \t");
+			size_t end = value.find_last_not_of(" \t");
+			if (start != std::string::npos && end != std::string::npos) {
+				value = value.substr(start, end - start + 1);
+			}
+			
+			m_headers[name] = value;
+		}
+	}
 }
 
 std::ostream& operator<<(std::ostream& o, Request& req)

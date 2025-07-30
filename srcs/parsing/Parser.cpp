@@ -5,10 +5,11 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/07/09 19:53:10 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/30 19:42:54 by macorso          ###   ########.fr       */
+/*   Created: Invalid date        by                   #+#    #+#             */
+/*   Updated: 2025/07/30 19:48:31 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 
 #include "Parser.h"
 #include "Logger.h"
@@ -200,7 +201,7 @@ void GET(Request& req, Response& resp)
 	(void)resp;
 }
 
-void HEAD(Request& req, Response& resp)
+void PUT(Request& req, Response& resp)
 {
 	(void)req;
 	(void)resp;
@@ -228,8 +229,8 @@ void (*Parser::getCorrespondingMethod(const std::string& str) const)(Request&, R
 {
 	if (str == "GET")
 		return GET;
-	else if (str == "HEAD")
-		return HEAD;
+	else if (str == "PUT")
+		return PUT;
 	else if (str == "DELETE")
 		return DELETE;
 	else if (str == "POST")
@@ -445,41 +446,48 @@ std::string Parser::parseRoot(const Directive& dir) const
 	return dir.args[0];
 }
 
-int Parser::parseClientBodySize(const Directive& dir) const
+size_t Parser::parseClientBodySize(const Directive& dir) const
 {
 	if (dir.args.size() != 1)
 	{
 		std::ostringstream o;
-		o << "'Client_max_body_size' requires exactly one argument at line " << dir.line_number + 1;
+		o << "'client_max_body_size' requires exactly one argument at line " << dir.line_number + 1;
 		throw std::runtime_error(o.str());
 	}
 
-	char *end;
-	
+	const std::string& arg = dir.args[0];
+	if (arg.empty() || arg.find_first_not_of("0123456789") != std::string::npos)
+	{
+		std::ostringstream o;
+		o << "'client_max_body_size' must be a positive integer at line " << dir.line_number + 1;
+		throw std::runtime_error(o.str());
+	}
+
 	errno = 0;
-	long num = strtol(dir.args[0].c_str(), &end, 10);
-	if (end)
+	char* end = NULL;
+	unsigned long long num = strtoull(arg.c_str(), &end, 10);
+
+	if (errno == ERANGE || end == arg.c_str() || *end != '\0' || num > static_cast<unsigned long long>(SIZE_MAX))
 	{
 		std::ostringstream o;
-		o << "'Client_max_body_size' requires only a number as a size at line " << dir.line_number + 1;
+		o << "'client_max_body_size' value out of range at line " << dir.line_number + 1;
 		throw std::runtime_error(o.str());
 	}
 
-	if (errno == ERANGE || (num > std::numeric_limits<int>::max() || num < std::numeric_limits<int>::min()))
-	{
-		std::ostringstream o;
-		o << "'Client_max_body_size' requires only a INTEGER at line " << dir.line_number + 1;
-		throw std::runtime_error(o.str());
-	}
-	return (static_cast<int>(num));
+	return static_cast<size_t>(num);
 }
 
-Server Parser::parseServer(const std::string& data) const
+void Server::addEnv(char **ep) {
+	m_ep = ep;
+}
+
+Server Parser::parseServer(const std::string& data, char **ep) const
 {
 	Server server;
 	std::vector<std::string> lines = splitLines(data);
 	size_t brace_level = 0;
 	bool in_server_block = true;
+	server.addEnv(ep);
 
 	for (size_t i = 0; i < lines.size(); i++)
 	{
@@ -535,7 +543,7 @@ Server Parser::parseServer(const std::string& data) const
 	return server;
 }
 
-void Parser::makeServers(const std::string& fileData)
+void Parser::makeServers(const std::string& fileData, char **ep)
 {
 	if (fileData.find("server", 0))
 		throw std::runtime_error("Didn't find server");
@@ -551,12 +559,12 @@ void Parser::makeServers(const std::string& fileData)
 		if (start >= end)
 			throw std::runtime_error("Invalid server block scope");
 		
-		m_Servers.push_back(parseServer(fileData.substr(start, end - start)));
+		m_Servers.push_back(parseServer(fileData.substr(start, end - start), ep));
 		pos = end + 1;
 	}
 }
 
-std::vector<Server> Parser::parse(std::ifstream& infile)
+std::vector<Server> Parser::parse(std::ifstream& infile, char **ep)
 {
 	std::stringstream ss;
 	ss << infile.rdbuf();
@@ -566,7 +574,7 @@ std::vector<Server> Parser::parse(std::ifstream& infile)
 	removeComments(fileData);
 	removeWhiteSpaces(fileData);
 	
-	makeServers(fileData);
+	makeServers(fileData, ep);
 
 	return this->m_Servers;
 }
