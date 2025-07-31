@@ -35,7 +35,6 @@ server {
 	listen 8080;
 	server_name localhost;
 	host 127.0.0.1;
-	host 127.0.0.1;
 	root file/;
 	#client_max_body_size 30000;
 	index page/index.html;

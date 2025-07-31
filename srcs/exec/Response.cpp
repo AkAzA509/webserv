@@ -3,33 +3,38 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:42:54 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:15:12 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/31 17:49:08 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.h"
+#include "Logger.h"
 
 Response::Response(Request req, Server serv) : m_req(req), m_serv(serv) {
 	std::string status = m_req.getResponseStatus();
 	if (status != HEADER_OK)
 		isErrorPage(status);
 	else {
-		std::string name[5] = {"GET", "HEAD", "DELETE", "POST", "PUT"};
+		Logger::log(BLINK, "VOICI LA REQYETE TESTER %s", m_req.getMethod().c_str());
+		std::string name[4] = {"GET", "DELETE", "POST", "PUT"};
 		void(Response::*fonction[])() = {&Response::methodeWithBodyResponse, &Response::methodeWithinBodyResponse};
 		int j = -1;
-		for (int i = 0; i < 5; i++) {
-			if (name[i].compare(m_req.getMethod())) {
+		for (int i = 0; i < 4; i++) {
+			if (name[i] == m_req.getMethod()) {
 				j = i;
 				break;
 			}
 		}
-		if (j >= 0 && j <= 1)
+		if (j < 0) {
+			Logger::log(RED, "Nique ta mere");
+			return ;
+		}
+		if (j == 0 || j == 1)
 			(this->*fonction[0])();
 		else
-
 			(this->*fonction[1])();
 	}
 		
@@ -76,6 +81,8 @@ void Response::methodeWithBodyResponse() {
 	std::string type;
 	std::string file;
 
+	std::cout << "coucou pas bon\n";
+	
 	// Cookie testing: Get cookies from request
 	std::string cookie_header = m_req.getHeader("Cookie");
 	
@@ -155,6 +162,7 @@ void Response::methodeWithBodyResponse() {
 
 void Response::methodeWithinBodyResponse() {
 	std::string empty;
+	std::cout << "respose ici\n";
 	fillResponse(empty, empty, m_req.getResponseStatus());
 }
 

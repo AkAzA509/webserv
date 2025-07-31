@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 18:06:29 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/31 16:37:57 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,14 +38,16 @@ public:
 	Request& operator=(const Request& other);
 public:
 	void parseRequest(std::string& request);
-	void writeFile(std::string& filename, std::string& file_data);
+	bool writeFile(std::string& filename, std::string& file_data);
 	std::string getHeader(const std::string& name) const; // Add getHeader method
 	void parseHeaders(const std::vector<std::string>& request); // Add parseHeaders method
+	bool setError(std::string code, const std::string& msg);
+	bool parseBody(const std::string& content_type, const std::string& body, std::string& filename, std::string& file_data);
 public:
-	void methodePost(std::vector<std::string>& tab, std::string& request);
-	void methodeGet(std::vector<std::string>& tab, std::string& request);
-	void methodeDelete(std::vector<std::string>& tab, std::string& request);
-	void methodePut(std::vector<std::string>& tab, std::string& request);
+	bool methodePost(std::vector<std::string>& tab, std::string& request);
+	bool methodeGet(std::vector<std::string>& tab, std::string& request);
+	bool methodeDelete(std::vector<std::string>& tab, std::string& request);
+	bool methodePut(std::vector<std::string>& tab, std::string& request);
 	void doCGI(size_t end_header, std::string& request);
 	std::vector<std::string> convertEnv();
 public:

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   listen.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/31 15:01:56 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/31 17:35:05 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,6 +130,7 @@ Response Server::parseRequest(std::string& request) {
 		return resp;
 	}
 	Request req(*it, words, request_lines, request, m_ep);
+	std::cout << req.getMethod() << std::endl;
 	Response resp(req, *this);
 	return resp;
 }
