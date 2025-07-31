@@ -58,11 +58,11 @@ server {
 		allow_methods DELETE GET POST;
 		autoindex off;
 	}
-	location /cgi-bin {
-		root ./;
-		allow_methods POST;
-		index change_color.py;
-		cgi_path /usr/bin/python3 ;
-		cgi_ext .py;
-	}
+	#location /cgi-bin {
+	#	root ./;
+	#	allow_methods POST;
+	#	index change_color.py;
+	#	cgi_path /usr/bin/python3 ;
+	#	cgi_ext .py;
+	#}
 }

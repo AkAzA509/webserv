@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 10:13:39 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 20:16:31 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/31 15:09:57 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,6 @@
 Request::Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request, char **env)
 : m_loc(loc), m_methode(firstRequestLine[0]), m_url(firstRequestLine[1]), m_version(firstRequestLine[2]), m_foundBody(false), m_errorPage(false), m_responseStatus(HEADER_OK), m_env(env) {
 
-	// Parse headers from request
 	parseHeaders(request);
 
 	std::string methode_name[4] = {"GET", "POST", "DELETE", "PUT"};
@@ -98,7 +97,7 @@ void Request::doCGI(size_t end_header, std::string& request) {
 void Request::methodePost(std::vector<std::string>& tab, std::string& full_request) {
 	(void)tab;
 
-	// cherche la fin du header et divise la string en 2 header/body
+	
 	size_t header_end = full_request.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
 		Logger::log(WHITE, "error request build: header not complete");
@@ -107,7 +106,6 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		return;
 	}
 	
-	std::cout << "Url: " << m_url << std::endl;
 	if (m_url.find("cgi-bin") == 0) {
 		doCGI(header_end + 4, full_request);
 		return ;
