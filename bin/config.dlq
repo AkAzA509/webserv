@@ -37,7 +37,7 @@ server {
 	host 127.0.0.1;
 	host 127.0.0.1;
 	root file/;
-	client_max_body_size 30000;
+	#client_max_body_size 30000;
 	index page/index.html;
 	error_page 404 file/error_pages/404.html;
 
@@ -58,11 +58,11 @@ server {
 		allow_methods DELETE GET POST;
 		autoindex off;
 	}
-	location /cgi-bin {
-		root ./;
-		allow_methods POST;
-		index change_color.py;
-		cgi_path /usr/bin/python3 ;
-		cgi_ext .py;
-	}
+	#location /cgi-bin {
+	#	root ./;
+	#	allow_methods POST;
+	#	index change_color.py;
+	#	cgi_path /usr/bin/python3 ;
+	#	cgi_ext .py;
+	#}
 }

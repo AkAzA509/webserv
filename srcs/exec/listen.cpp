@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   listen.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 18:03:32 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/31 15:01:56 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,6 +167,7 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 				std::string request = getClientRequest(fd);
 				if (!request.empty()) {
 					Response resp = parseRequest(request);
+					std::cout << "Response: " << resp.getResponse() << std::endl;
 					sendClient(resp, fd);
 					cleanupClient(epfd, fd, ev[i]);
 				}
