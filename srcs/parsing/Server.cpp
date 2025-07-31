@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/07/30 19:49:45 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/30 20:13:28 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include <limits>
 #include "Logger.h"
 
-Server::Server() : m_Client_max_body_size(1000000) {}
+Server::Server() : m_Client_max_body_size(std::numeric_limits<size_t>::max()) {}
 Server::~Server() {}
 
 void Server::addPort(size_t port)
@@ -177,7 +177,6 @@ Location::~Location()
 
 Location::Location(const std::string& path) : m_path(path)
 {
-	std::cout << path << std::endl;
 	#if DEBUG
 		Logger::log(CYAN, "LOCATION DESTRUCTION");
 	#endif

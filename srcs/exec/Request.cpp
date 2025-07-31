@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 10:13:39 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 18:08:17 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 20:16:31 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -107,7 +107,8 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		return;
 	}
 	
-	if (m_url.find("cgi-bin")) {
+	std::cout << "Url: " << m_url << std::endl;
+	if (m_url.find("cgi-bin") == 0) {
 		doCGI(header_end + 4, full_request);
 		return ;
 	}
@@ -129,7 +130,6 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		m_errorPage = true;
 		m_responseStatus = ERROR_411;
 		return;
-		return;
 	}
 
 	// cherche le boundary et le stock avec l'ajout de '--' avant
@@ -139,7 +139,6 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		Logger::log(WHITE, "error request build: boundary not found in header");
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
-		return;
 		return;
 	}
 	std::string boundary = "--" + m_content_type.substr(b_pos + boundary_key.size());
@@ -154,7 +153,6 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
 		return;
-		return;
 	}
 	
 	part_start += boundary.length() + 2;
@@ -165,7 +163,6 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		Logger::log(WHITE, "error request build: missing Content-disposition");
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
-		return;
 		return;
 	}
 	std::string part_header = body.substr(part_start, part_header_end - part_start);
@@ -190,7 +187,6 @@ void Request::methodePost(std::vector<std::string>& tab, std::string& full_reque
 		Logger::log(WHITE, "error request build: end boundary not found");
 		m_errorPage = true;
 		m_responseStatus = ERROR_400;
-		return;
 		return;
 	}
 

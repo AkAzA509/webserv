@@ -153,6 +153,7 @@ class Server
 		void addLocation(Location& loc);
 		void removeLocation(size_t idx);
 		void removeSocket(int idx);
+		inline void setClientMaxBodySize(int size) { m_Client_max_body_size = size; }
 		void setClientMaxBodySize(size_t size);
 		void addEnv(char **ep);
 };

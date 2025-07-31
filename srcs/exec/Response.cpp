@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:42:54 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:15:12 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/30 20:05:26 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ Response& Response::operator=(const Response &other) {
 	return *this;
 }
 
-std::string Response::getResponse() {
+std::string Response::getResponse() const{
 	return m_response;
 }
 
@@ -224,4 +224,10 @@ std::string Response::getCurrentTimestamp() {
 	ss << std::ctime(&now);
     // ss << now;
     return ss.str();
+}
+
+std::ostream& operator<<(std::ostream& o, const Response& a)
+{
+	o << a.getResponse();
+	return o;
 }

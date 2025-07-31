@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:43:15 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 17:15:12 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/30 20:04:47 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ private:
 	Server m_serv;
 	std::map<std::string, std::string> m_cookies_to_set; // New member for cookies to send
 public:
-	std::string getResponse();
+	std::string getResponse() const;
 	void isErrorPage(std::string& error);
 	void fillResponse(std::string type, std::string& file, std::string head);
 	void methodeWithBodyResponse();
@@ -46,4 +46,7 @@ public:
 	~Response() {};
 	Response(const Response& copy);
 	Response& operator=(const Response& other);
+
 };
+
+std::ostream& operator<<(std::ostream& o, const Response& a);

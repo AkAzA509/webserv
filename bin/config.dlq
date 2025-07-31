@@ -37,7 +37,7 @@ server {
 	host 127.0.0.1;
 	host 127.0.0.1;
 	root file/;
-	client_max_body_size 30000;
+	#client_max_body_size 30000;
 	index page/index.html;
 	error_page 404 file/error_pages/404.html;
 

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   listen.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 18:03:32 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/07/30 20:13:35 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,7 +72,8 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 			Logger::log(YELLOW, "Request :\n%s\n=======================", client.request_buffer.c_str());
 			return true;
 		}
-		
+		std::cout << "Buffer size: " << client.request_buffer.size() << std::endl;
+		std::cout << "ClientBodySize: " << m_Client_max_body_size << std::endl;
 		if (client.request_buffer.size() > m_Client_max_body_size) {
 			Logger::log(RED, "error request : request size overflow the max size in the config file");
 			cleanupClient(epfd, client_fd, ev);
@@ -129,8 +130,10 @@ Response Server::parseRequest(std::string& request) {
 		Response resp(error, *this);
 		return resp;
 	}
+
 	Request req(*it, words, request_lines, request, m_ep);
 	Response resp(req, *this);
+
 	return resp;
 }
 
@@ -164,11 +167,13 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 		}
 		else {
 			if (recvClient(epfd, ev[i], fd)) {
+				
 				std::string request = getClientRequest(fd);
 				if (!request.empty()) {
 					Response resp = parseRequest(request);
 					sendClient(resp, fd);
 					cleanupClient(epfd, fd, ev[i]);
+
 				}
 			}
 			// Si request_ready == false, on attend juste le prochain événement epoll
