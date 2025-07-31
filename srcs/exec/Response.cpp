@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:42:54 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/30 20:05:26 by macorso          ###   ########.fr       */
+/*   Updated: 2025/07/31 15:16:50 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -194,6 +194,7 @@ void Response::setCookie(const std::string& name, const std::string& value,
         cookie_header += "; Max-Age=" + ss.str();
     }
     
+	cookie_header += "\r\n";
     // Store cookie to be added to response headers
     m_cookies_to_set[name] = cookie_header;
 }
