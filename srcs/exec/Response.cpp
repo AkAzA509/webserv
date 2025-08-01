@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 10:42:54 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/31 17:49:08 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/01 13:21:57 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,6 @@ Response::Response(Request req, Server serv) : m_req(req), m_serv(serv) {
 	if (status != HEADER_OK)
 		isErrorPage(status);
 	else {
-		Logger::log(BLINK, "VOICI LA REQYETE TESTER %s", m_req.getMethod().c_str());
 		std::string name[4] = {"GET", "DELETE", "POST", "PUT"};
 		void(Response::*fonction[])() = {&Response::methodeWithBodyResponse, &Response::methodeWithinBodyResponse};
 		int j = -1;
@@ -80,8 +79,6 @@ void Response::isErrorPage(std::string& error_code) {
 void Response::methodeWithBodyResponse() {
 	std::string type;
 	std::string file;
-
-	std::cout << "coucou pas bon\n";
 	
 	// Cookie testing: Get cookies from request
 	std::string cookie_header = m_req.getHeader("Cookie");
@@ -162,7 +159,6 @@ void Response::methodeWithBodyResponse() {
 
 void Response::methodeWithinBodyResponse() {
 	std::string empty;
-	std::cout << "respose ici\n";
 	fillResponse(empty, empty, m_req.getResponseStatus());
 }
 

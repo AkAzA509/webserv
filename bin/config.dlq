@@ -35,7 +35,7 @@ server {
 	listen 8080;
 	server_name localhost;
 	host 127.0.0.1;
-	root file/;
+	root /file;
 	#client_max_body_size 30000;
 	index page/index.html;
 	error_page 404 file/error_pages/404.html;

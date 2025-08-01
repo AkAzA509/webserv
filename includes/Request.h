@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/31 16:37:57 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/01 17:11:17 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 #include <iostream>
 #include <vector>
 #include "Server.h"
+#include <sys/wait.h>
 
 class Request {
 private:
@@ -24,7 +25,8 @@ private:
 	std::string m_version;
 	std::string m_content_type;
 	std::string m_content_length;
-	std::string m_body;
+	std::string m_body_request;
+	std::string m_body_reponse;
 	bool m_foundBody;
 	bool m_errorPage;
 	std::string m_responseStatus;
@@ -49,9 +51,10 @@ public:
 	bool methodeDelete(std::vector<std::string>& tab, std::string& request);
 	bool methodePut(std::vector<std::string>& tab, std::string& request);
 	void doCGI(size_t end_header, std::string& request);
+	void Request::autoIndex();
 	std::vector<std::string> convertEnv();
 public:
-	std::string getBody() { return m_body; }
+	std::string getBody() { return m_body_request; }
 	std::string getMethod() { return m_methode; }
 	std::string getUrl() { return m_url; }
 	std::string getVersion() { return m_version; }
