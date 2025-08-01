@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 10:13:39 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/31 17:36:18 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/01 12:26:15 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,38 +54,38 @@ Request& Request::operator=(const Request &other) {
     return *this;
 }
 
-std::vector<std::string> Request::convertEnv() {
-    std::vector<std::string> env;
-    for (size_t i = 0; m_env[i]; i++)
-        env.push_back(m_env[i]);
-    return env;
-}
+// std::vector<std::string> Request::convertEnv() {
+//     std::vector<std::string> env;
+//     for (size_t i = 0; m_env[i]; i++)
+//         env.push_back(m_env[i]);
+//     return env;
+// }
 
-void Request::doCGI(size_t end_header, std::string& request) {
-    std::vector<std::string> env = convertEnv();
-    char *av[] = { (char *)"./cgi-bin/change_color.sh", NULL };
-    int fd[2];
+// void Request::doCGI(size_t end_header, std::string& request) {
+//     std::vector<std::string> env = convertEnv();
+//     char *av[] = { (char *)"./cgi-bin/change_color.sh", NULL };
+//     int fd[2];
 
-    env.push_back("REQUEST_METHOD=" + m_methode);
-    env.push_back("CONTENT_LENGTH=" + request.substr(end_header).size());
-    env.push_back("SERVER_PROTOCOL=HTTP/1.1");
+//     env.push_back("REQUEST_METHOD=" + m_methode);
+//     env.push_back("CONTENT_LENGTH=" + request.substr(end_header).size());
+//     env.push_back("SERVER_PROTOCOL=HTTP/1.1");
 
-    std::vector<char *> new_env;
-    for (size_t i = 0; i < env.size(); ++i)
-        new_env.push_back(const_cast<char *>(env[i].c_str()));
-    new_env.push_back(NULL);
+//     std::vector<char *> new_env;
+//     for (size_t i = 0; i < env.size(); ++i)
+//         new_env.push_back(const_cast<char *>(env[i].c_str()));
+//     new_env.push_back(NULL);
 
-    if (pipe(fd)) {
-        Logger::log(RED, "error pipe : pipe failed");
-        return ;
-    }
+//     if (pipe(fd)) {
+//         Logger::log(RED, "error pipe : pipe failed");
+//         return ;
+//     }
 
-    pid_t pid = fork();
-    if (pid == 0) {
-        // dup2();
-        execve("./cgi-bin/change_color.sh", av, new_env.data());
-    }
-}
+//     pid_t pid = fork();
+//     if (pid == 0) {
+//         // dup2();
+//         execve("./cgi-bin/change_color.sh", av, new_env.data());
+//     }
+// }
 
 bool Request::methodePost(std::vector<std::string>&, std::string& full_request) {
     size_t header_end = full_request.find("\r\n\r\n");
@@ -171,43 +171,60 @@ bool Request::writeFile(std::string& filename, std::string& file_data) {
 	return true;
 }
 
+// bool Request::parseBody(const std::string& content_type, const std::string& body, std::string& filename, std::string& file_data) {
+//     std::string boundary_key = "boundary=";
+//     size_t b_pos = content_type.find(boundary_key);
+//     if (b_pos == std::string::npos)
+//         return setError(ERROR_400, "boundary not found in header");
+
+//     std::string boundary = "--" + content_type.substr(b_pos + boundary_key.size());
+//     boundary.erase(boundary.find_last_not_of("\r\n") + 1);
+
+//     size_t part_start = body.find(boundary);
+//     if (part_start == std::string::npos)
+//         return setError(ERROR_400, "boundary not found in body");
+//     part_start += boundary.length() + 2;
+
+//     size_t part_header_end = body.find("\r\n\r\n", part_start);
+//     if (part_header_end == std::string::npos)
+//         return setError(ERROR_400, "missing Content-disposition");
+
+//     std::string part_header = body.substr(part_start, part_header_end - part_start);
+//     size_t fname_pos = part_header.find("filename=\"");
+//     if (fname_pos != std::string::npos) {
+//         fname_pos += 10;
+//         size_t fname_end = part_header.find("\"", fname_pos);
+//         if (fname_end != std::string::npos)
+//             filename = part_header.substr(fname_pos, fname_end - fname_pos);
+//     }
+
+//     std::string end_boundary = boundary + "--";
+//     size_t data_start = part_header_end + 4;
+//     size_t data_end = body.find(end_boundary, data_start);
+//     if (data_end == std::string::npos)
+//         return setError(ERROR_400, "end boundary not found");
+//     if (data_end >= 2 && body.substr(data_end - 2, 2) == "\r\n")
+//         data_end -= 2;
+
+//     file_data = body.substr(data_start, data_end - data_start);
+//     return true;
+// }
+
 bool Request::parseBody(const std::string& content_type, const std::string& body, std::string& filename, std::string& file_data) {
-    std::string boundary_key = "boundary=";
-    size_t b_pos = content_type.find(boundary_key);
-    if (b_pos == std::string::npos)
-        return setError(ERROR_400, "boundary not found in header");
+{
+	std::vector<std::string> content = split(content_type, ";");
+	std::string boundary;
+	
+	for (std::vector<std::string>::iterator it = content.begin(); it != content.end(); ++it)
+	{
+		std::string value = *it;
 
-    std::string boundary = "--" + content_type.substr(b_pos + boundary_key.size());
-    boundary.erase(boundary.find_last_not_of("\r\n") + 1);
-
-    size_t part_start = body.find(boundary);
-    if (part_start == std::string::npos)
-        return setError(ERROR_400, "boundary not found in body");
-    part_start += boundary.length() + 2;
-
-    size_t part_header_end = body.find("\r\n\r\n", part_start);
-    if (part_header_end == std::string::npos)
-        return setError(ERROR_400, "missing Content-disposition");
-
-    std::string part_header = body.substr(part_start, part_header_end - part_start);
-    size_t fname_pos = part_header.find("filename=\"");
-    if (fname_pos != std::string::npos) {
-        fname_pos += 10;
-        size_t fname_end = part_header.find("\"", fname_pos);
-        if (fname_end != std::string::npos)
-            filename = part_header.substr(fname_pos, fname_end - fname_pos);
-    }
-
-    std::string end_boundary = boundary + "--";
-    size_t data_start = part_header_end + 4;
-    size_t data_end = body.find(end_boundary, data_start);
-    if (data_end == std::string::npos)
-        return setError(ERROR_400, "end boundary not found");
-    if (data_end >= 2 && body.substr(data_end - 2, 2) == "\r\n")
-        data_end -= 2;
-
-    file_data = body.substr(data_start, data_end - data_start);
-    return true;
+		if (value.find("boundary=") != std::string::npos)
+		{
+			
+		}
+	}
+	return true;
 }
 
 bool Request::setError(std::string code, const std::string& msg) {
