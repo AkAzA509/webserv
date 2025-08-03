@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/08/01 15:53:47 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/02 11:08:46 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,7 +68,7 @@ void Config::launchServers() {
 			// it->setupSocket();
 			// it->waitConnection();
 			std::string request =
-				"POST /cgi-bin/change_color.sh HTTP/1.1\r\n"
+				"POST / HTTP/1.1\r\n"
 				"Host: localhost:8080\r\n"
 				"Connection: keep-alive\r\n"
 				"Content-Length: 9\r\n"

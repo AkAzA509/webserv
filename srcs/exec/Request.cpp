@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 10:13:39 by ggirault          #+#    #+#             */
-/*   Updated: 2025/08/01 17:32:35 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/02 11:31:03 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -180,8 +180,14 @@ bool Request::methodePost(std::vector<std::string>&, std::string& full_request) 
 	if (header_end == std::string::npos)
 		return setError(ERROR_400, "header not complete");
 
-	if (m_url.find("cgi-bin") != std::string::npos) {
-		doCGI(header_end + 4, full_request);
+	// if (m_url.find("cgi-bin") != std::string::npos) {
+	// 	doCGI(header_end + 4, full_request);
+	// 	return true;
+	// }
+	std::cout << "coucou\n";
+	if (m_loc.isAutoIndexOn()) {
+		std::cout << "resr1\n";
+		autoIndex();
 		return true;
 	}
 
@@ -341,12 +347,82 @@ std::ostream& operator<<(std::ostream& o, Request& req) {
 
 
 
-
 void Request::autoIndex() {
-	struct dirent* dir;
-	std::string page;
+    std::string dir_path = m_url;
+    
+    if (dir_path == "/") {
+        dir_path = ".";
+    } else {
+        dir_path.erase(0, 1);
+    }
+    
+    DIR* directory = opendir(dir_path.c_str());
+    if (!directory) {
+        Logger::log(RED, "Failed to open directory: %s", dir_path.c_str());
+        return;
+    }
+    
+    struct dirent* entry;
+    std::string page;
+    
+    // HTML header
+    page += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n";
+    page += "<title>Index of " + m_url + "</title>\n";
+    page += "<style>\nbody { font-family: sans-serif; max-width: 800px; margin: 40px auto; }\n";
+    page += "table { border-collapse: collapse; width: 100%; }\n";
+    page += "th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }\n";
+    page += "a { text-decoration: none; color: #0066cc; }\n";
+    page += "a:hover { text-decoration: underline; }\n</style>\n</head>\n";
+    
+    page += "<body>\n<h1>Index of " + m_url + "</h1>\n";
+    page += "<table>\n<tr><th>Name</th><th>Size</th></tr>\n";
+    
+    // Parent directory link
+    if (m_url != "/") {
+        page += "<tr><td><a href=\"../\">../</a></td><td>-</td></tr>\n";
+    }
+    
+    // Directory contents
+    while ((entry = readdir(directory)) != NULL) {
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        continue;
+        
+    std::string filename = entry->d_name;
+    Logger::log(WHITE, "Processing file: %s", filename.c_str());
+    
+    std::string fullpath = (dir_path == ".") ? filename : dir_path + "/" + filename;
+    
+    struct stat fileStat;
+    if (stat(fullpath.c_str(), &fileStat) == 0) {
+        Logger::log(WHITE, "Building HTML for: %s", filename.c_str());
+        
+        page += "<tr><td><a href=\"" + filename;
+        if (S_ISDIR(fileStat.st_mode))
+            page += "/";
+        page += "\">" + filename;
+        if (S_ISDIR(fileStat.st_mode))
+            page += "/";
+        page += "</a></td>";
+        
+        if (S_ISDIR(fileStat.st_mode)) {
+            page += "<td>-</td>";
+        } else {
+            std::stringstream ss;
+            ss << fileStat.st_size;
+            std::string size_fileStat(ss.str());
+            page += "<td>" + size_fileStat + " bytes</td>";
+            Logger::log(WHITE, "File size: %s bytes", size_fileStat.c_str());
+        }
+        page += "</tr>\n";
+        
+        Logger::log(WHITE, "HTML built successfully for: %s", filename.c_str());
+    } else {
+        Logger::log(RED, "stat() failed for: %s", filename.c_str());
+    }
+}
 
-	page += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<title>Page index " + m_methode + " </title>\n";
-	page += "<style>\nbody { font-family: sans-serif; max-width: 600px; margin: 40px auto; }\npre { background: #f0f0f0; padding: 10px; white-space: pre-wrap; }\nli { font-size: 40; font-weight: bold;}\n</style>\n</head>\n";
-
+Logger::log(WHITE, "Loop finished, closing tags...");
+page += "</table>\n</body>\n</html>";
+    closedir(directory);
+	std::cout << "page :" << page << std::endl;
 }

@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/04 10:25:18 by ggirault          #+#    #+#             */
-/*   Updated: 2025/08/01 13:23:25 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/02 10:56:40 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,7 +96,6 @@ Response Server::parseRequest(std::string& request) {
 	std::vector<std::string> request_lines = splitRequest(request);
 
 	if (request_lines.empty()) {
-		// Logger::log(RED, "error request : empty request");
 		// Logger::log(RED, "error request : empty request");
 		std::string error = ERROR_400;
 		Response resp(error, *this);
