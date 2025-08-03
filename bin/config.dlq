@@ -43,7 +43,7 @@ server {
 
 	location / {
 		allow_methods GET HEAD POST;
-		autoindex off;
+		autoindex on;
 	}
 	location /cookie-test {
 		index page/cookie-test.html
