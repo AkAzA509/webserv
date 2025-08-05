@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/07/30 19:48:31 by macorso          ###   ########.fr       */
+/*   Updated: 2025/08/05 17:05:42 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,23 @@ Parser::~Parser()
 	#if DEBUG
 		std::cout << "Parser destruction" << std::endl;
 	#endif
+}
+
+std::vector<std::string> split(const std::string& str, const std::string& sep)
+{
+	std::vector<std::string> result;
+	size_t start = 0;
+	size_t end;
+
+	while ((end = str.find(sep, start)) != std::string::npos)
+	{
+		result.push_back(str.substr(start, end - start));
+		start = end + sep.length();
+	}
+	if (start < end && !str.substr(start).empty())
+		result.push_back(str.substr(start)); // add the last part
+	return result;
+
 }
 
 
@@ -118,11 +135,10 @@ bool Parser::isDigits(const std::string& input) const
 	return true;
 }
 
-std::vector<std::string> split(const std::string& str, const std::string& sep)
+std::vector<std::string> splitset(const std::string& str, const std::string& sep)
 {
 	std::vector<std::string> tokens;
 	size_t start = 0, end = 0;
-	
 	while ((end = str.find_first_of(sep, start)) != std::string::npos)
 	{
 		if (end != start)
@@ -261,7 +277,7 @@ Directive Parser::parseDirective(const std::string& line, size_t line_number) co
 		clean_line.erase(clean_line.end() - 1);
 	}
 
-	std::vector<std::string> tokens = split(clean_line, " \t");
+	std::vector<std::string> tokens = splitset(clean_line, " \t");
 	if (tokens.empty())
 	{
 		std::ostringstream o;
@@ -326,11 +342,13 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 		{
 			Directive dir = parseDirective(line, index);
 			if (dir.name == "root")
+			{
 				location.setRoot(dir.args[0]);
+			}
 			else if (dir.name == "allow_methods")
 			{
 				for (std::vector<std::string>::const_iterator it = dir.args.begin(); it != dir.args.end(); ++it)
-					location.addAllowedMethod(*it, getCorrespondingMethod(*it));
+					location.addAllowedMethod(*it);
 			}
 			else if (dir.name == "index")
 			{
@@ -342,7 +360,7 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 				bool on = (dir.args[0] == "on");
 				location.setAutoIndexOn(on);
 			}
-			else if (dir.name == "cgi_path")
+			else if (dir.name == "cgi_pass")
 			{
 				for (std::vector<std::string>::iterator path = dir.args.begin(); path != dir.args.end(); ++path)
 					location.addCgiPath(*path);
@@ -354,6 +372,12 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 			}
 			else if (dir.name == "return")
 				location.setRedirectionPath(dir.args[0]);
+			else if (dir.name == "upload_path") {
+                if (dir.args.size() != 1) {
+                    throw std::runtime_error("upload_path requires exactly one argument");
+                }
+                location.setUploadPath(dir.args[0]);
+            }
 		}
 	}
 	return location;
@@ -489,6 +513,13 @@ Server Parser::parseServer(const std::string& data, char **ep) const
 	bool in_server_block = true;
 	server.addEnv(ep);
 
+	std::string server_root = "";
+    std::vector<std::string> server_index_files;
+    std::map<int, std::string> server_error_pages;
+    size_t server_client_max_body_size = 0;
+    std::string server_host_ip = "";
+    std::string server_server_name = "";
+
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		std::string line = trim(lines[i]);
@@ -508,39 +539,53 @@ Server Parser::parseServer(const std::string& data, char **ep) const
 			continue;
 		}
 
-		if (brace_level == 1)
-		{
-			Directive dir = parseDirective(line, i);
-			if (dir.name == "listen")
-				server.addPort(parsePort(dir));
-			else if (dir.name == "server_name")
-				server.setServerName(parseServerName(dir));
-			else if (dir.name == "host")
-				server.setHostIp(parseHost(dir));
-			else if (dir.name == "root")
-				server.setRoot(parseRoot(dir));
-			else if (dir.name == "index") {
-				for (std::vector<std::string>::iterator it = dir.args.begin(); it != dir.args.end(); ++it) {
-					server.addIndexFile(*it);
-				}
-			}
-			else if (dir.name == "error_page")
-			{
-				std::pair<int, std::string> result = parseErrorPage(dir);
-				server.addErrorPage(result.first, result.second);
-			}
-			else if (dir.name == "client_max_body_size")
-			{
-				server.setClientMaxBodySize(parseClientBodySize(dir));
-			}
-		}
+		if (brace_level == 1) {
+            Directive dir = parseDirective(line, i);
+            if (dir.name == "listen") {
+                server.addPort(parsePort(dir));
+            }
+            else if (dir.name == "server_name") {
+                server_server_name = parseServerName(dir);
+                server.setServerName(server_server_name);
+            }
+            else if (dir.name == "host") {
+                server_host_ip = parseHost(dir);
+                server.setHostIp(server_host_ip);
+            }
+            else if (dir.name == "root") {
+                server_root = parseRoot(dir);
+                server.setRoot(server_root);
+                Logger::log(RED, "Parsed Root: %s\n", server.getRoot().c_str());
+            }
+            else if (dir.name == "index") {
+                server_index_files.clear();
+                for (std::vector<std::string>::iterator it = dir.args.begin(); it != dir.args.end(); ++it) {
+                    server_index_files.push_back(*it);
+                    server.addIndexFile(*it);
+                }
+            }
+            else if (dir.name == "error_page") {
+                std::pair<int, std::string> result = parseErrorPage(dir);
+                server_error_pages[result.first] = result.second;
+                server.addErrorPage(result.first, result.second);
+            }
+            else if (dir.name == "client_max_body_size") {
+                server_client_max_body_size = parseClientBodySize(dir);
+                server.setClientMaxBodySize(server_client_max_body_size);
+            }
+            else if (dir.name == "upload_path") {
+                if (dir.args.size() != 1) {
+                    throw std::runtime_error("upload_path requires exactly one argument");
+                }
+                server.setUploadPath(dir.args[0]);
+            }
+        }
 
-		// End of server block
-		if (in_server_block && brace_level == 0) {
-			break;
-		}
-	}
-	return server;
+        if (in_server_block && brace_level == 0) {
+            break;
+        }
+    }
+    return server;
 }
 
 void Parser::makeServers(const std::string& fileData, char **ep)

@@ -40,6 +40,7 @@ class Parser
 		std::vector<Server> parse(std::ifstream& infile, char **ep);
 };
 
+std::vector<std::string> splitset(const std::string& str, const std::string& sep);
 std::vector<std::string> split(const std::string& str, const std::string& sep);
 std::string trim(const std::string& str);
 std::vector<std::string> splitLines(const std::string& data);

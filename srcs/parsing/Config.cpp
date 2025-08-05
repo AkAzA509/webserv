@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/07/30 17:57:28 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/04 22:35:25 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,9 +65,9 @@ void Config::launchServers() {
 	try
 	{
 		for(std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it) {
-			it->setupSocket();
-			it->waitConnection();
-			
+			Server server = *it;
+			server.setupSocket();
+			server.waitConnection();
 		}
 	}
 	catch(const std::exception& e)

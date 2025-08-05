@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/07/31 15:10:37 by macorso          ###   ########.fr       */
+/*   Updated: 2025/08/05 17:07:35 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -187,7 +187,7 @@ Location::Location(const std::string& path) : m_path(path)
 std::ostream& operator<<(std::ostream& os, const Location& loc)
 {
 	os << "Location {\n";
-	os << "  Path: " << loc.getPath() << "\n";
+	os << "  Path: " << loc.getUploadPath() << "\n";
 	os << "  Redirection Path: " << loc.getRedirectionPath() << "\n";
 	os << "  Root: " << loc.getRoot() << "\n";
 	os << "  AutoIndex: " << (loc.isAutoIndexOn() ? "On" : "Off") << "\n";
@@ -214,10 +214,12 @@ std::ostream& operator<<(std::ostream& os, const Location& loc)
 	os << "]\n";
 
 	os << "  Allowed Methods: [";
-	const std::map<std::string, void (*)(Request&, Response&)>& methods = loc.getAllowedMethods();
-	for (std::map<std::string, void (*)(Request&, Response&)>::const_iterator it = methods.begin(); it != methods.end(); ++it) {
-		os << it->first;
-		if (snext(it) != methods.end()) os << ", ";
+	const std::vector<std::string>& methods = loc.getAllowedMethods();
+	for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); ++it)
+	{
+		os << *it;
+		if (it < methods.end() - 1)
+			os << " ";
 	}
 	os << "]\n";
 
