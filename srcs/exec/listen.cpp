@@ -133,7 +133,7 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
                 std::string request = m_clients[fd].request_buffer;
                 if (!request.empty()) {
                     try {
-                        Request req(*this, request);
+                        Request req(*this, request, m_ep);
 						std::cout << req << std::endl;
 						Response resp(req, *this);
 						// (void)resp;

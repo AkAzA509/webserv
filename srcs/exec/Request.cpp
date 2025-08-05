@@ -1,5 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Request.cpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
+/*   Updated: 2025/08/05 17:59:40 by ggirault         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Request.h"
 #include "Parser.h"
+#include "Logger.h"
 #include <cctype>
 #include <algorithm>
 
@@ -9,25 +22,22 @@ std::ostream& operator<<(std::ostream& o, const BinaryInfo& info)
 	return o;
 }
 
-Request::Request(Server& server, const std::string& request) 
-	: m_iserrorPage(false), m_error_page(0) 
+Request::Request(Server& server, const std::string& request, char **env)
+	: m_iserrorPage(false), m_error_page(0), m_env(env)
 {
 	parseHeader(request, server);
-	if (!m_iserrorPage) {
+	if (!m_iserrorPage)
 		parseBody(request);
-	}
 }
 
 // Case-insensitive string comparison helper
 bool iequals(const std::string& a, const std::string& b) {
-	if (a.length() != b.length()) {
+	if (a.length() != b.length())
 		return false;
-	}
 	
 	for (size_t i = 0; i < a.length(); ++i) {
-		if (std::tolower(a[i]) != std::tolower(b[i])) {
+		if (std::tolower(a[i]) != std::tolower(b[i]))
 			return false;
-		}
 	}
 	return true;
 }
@@ -37,20 +47,19 @@ void Request::parseContentDispo(const std::string& line, BinaryInfo& binInfo) {
 	for (size_t i = 1; i < args.size(); i++) {
 		std::string arg = trim(args[i]);
 		size_t eq_pos = arg.find('=');
-		if (eq_pos == std::string::npos) continue;
+		if (eq_pos == std::string::npos)
+			continue;
 
 		std::string key = trim(arg.substr(0, eq_pos));
 		std::string value = trim(arg.substr(eq_pos + 1));
 		
-		if (value.size() >= 2 && value[0] == '"' && value[value.size() - 1] == '"') {
+		if (value.size() >= 2 && value[0] == '"' && value[value.size() - 1] == '"')
 			value = value.substr(1, value.size() - 2);
-		}
 
-		if (iequals(key, "name")) {
+		if (iequals(key, "name"))
 			binInfo.field_name = value;
-		} else if (iequals(key, "filename")) {
+		else if (iequals(key, "filename"))
 			binInfo.filename = value;
-		}
 	}
 }
 
@@ -69,18 +78,21 @@ void Request::parseBinaryInfos(const std::string& body) {
 		size_t end_pos = body.find(boundary, start_pos);
 		if (end_pos == std::string::npos) {
 			end_pos = body.find(end_boundary, start_pos);
-			if (end_pos == std::string::npos) break;
+			if (end_pos == std::string::npos)
+				break;
 		}
 
 		std::string part = body.substr(start_pos, end_pos - start_pos);
 		start_pos = end_pos + boundary.length();
 
 		// Skip leading CRLF
-		if (part.substr(0, 2) == "\r\n") part = part.substr(2);
+		if (part.substr(0, 2) == "\r\n")
+			part = part.substr(2);
 		
 		// Separate headers and body
 		size_t header_end = part.find("\r\n\r\n");
-		if (header_end == std::string::npos) continue;
+		if (header_end == std::string::npos)
+			continue;
 
 		BinaryInfo binInfo;
 		std::string headers_block = part.substr(0, header_end);
@@ -88,15 +100,12 @@ void Request::parseBinaryInfos(const std::string& body) {
 
 		std::vector<std::string> headers = splitset(headers_block, "\r\n");
 		for (size_t i = 0; i < headers.size(); i++) {
-			if (iequals(headers[i].substr(0, 21), "Content-Disposition:")) {
+			if (iequals(headers[i].substr(0, 21), "Content-Disposition:"))
 				parseContentDispo(headers[i], binInfo);
-			}
 		}
 
-		if (binInfo.data.size() >= 2 && 
-			binInfo.data.substr(binInfo.data.size() - 2) == "\r\n") {
+		if (binInfo.data.size() >= 2 && binInfo.data.substr(binInfo.data.size() - 2) == "\r\n")
 			binInfo.data.resize(binInfo.data.size() - 2);
-		}
 
 		// Add these checks in parseBinaryInfos:
 		std::cout << "Boundary: '" << m_boundary << "'" << std::endl;
@@ -120,15 +129,15 @@ void Request::parseBody(const std::string& request) {
 		size_t boundary_pos = c_type.find("boundary=");
 		if (boundary_pos != std::string::npos) {
 			m_boundary = trim(c_type.substr(boundary_pos + 9));
-			if (!m_boundary.empty()) {
+			if (!m_boundary.empty())
 				parseBinaryInfos(body);
-			}
 		}
 	}
 }
 
 void Request::parseHeader(const std::string& request, const Server& server) {
 	size_t header_end = request.find("\r\n\r\n");
+
 	if (header_end == std::string::npos) {
 		setError(E_ERROR_400);
 		return;
@@ -136,8 +145,8 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 
 	std::string header_block = request.substr(0, header_end);
 	std::vector<std::string> headers = splitset(header_block, "\r\n");
-
 	std::vector<std::string> req_line = splitset(headers[0], " ");
+
 	if (req_line.size() != 3) {
 		setError(E_ERROR_400);
 		return;
@@ -159,8 +168,7 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 
 	for (size_t i = 0; i < locations.size(); i++) {
 		const std::string& loc_path = locations[i].getPath();
-		if (m_path.compare(0, loc_path.size(), loc_path) == 0 && 
-			loc_path.size() > max_len) {
+		if (m_path.compare(0, loc_path.size(), loc_path) == 0 && loc_path.size() > max_len) {
 			best_match = &locations[i];
 			max_len = loc_path.size();
 		}
@@ -175,7 +183,8 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 
 	for (size_t i = 1; i < headers.size(); i++) {
 		size_t colon = headers[i].find(':');
-		if (colon == std::string::npos) continue;
+		if (colon == std::string::npos)
+			continue;
 
 		std::string key = trim(headers[i].substr(0, colon));
 		std::string value = trim(headers[i].substr(colon + 1));
@@ -249,4 +258,157 @@ std::ostream& operator<<(std::ostream& o, const Request& req) {
     }
     
     return o;
+}
+
+std::vector<std::string> Request::convertEnv() {
+	std::vector<std::string> env;
+	for (size_t i = 0; m_env[i]; i++)
+		env.push_back(m_env[i]);
+	return env;
+}
+
+void Request::doCGI(size_t end_header, std::string& request) {
+	std::vector<std::string> env = convertEnv();
+
+	env.push_back("REQUEST_METHOD=" + m_method);
+	env.push_back("SERVER_PROTOCOL=HTTP/1.1");
+
+	std::string body = request.substr(end_header);
+
+	if (m_method == "GET") {
+		size_t query_pos = m_path.find('?');
+		std::string query = (query_pos != std::string::npos) ? m_path.substr(query_pos + 1) : "";
+		env.push_back("QUERY_STRING=" + query);
+	}
+	else if (m_method == "POST") {
+		std::stringstream ss;
+		ss << body.size();
+		std::string len = ss.str();
+		env.push_back("CONTENT_LENGTH=" + len);
+	}
+
+	std::vector<char *> envp;
+	for (size_t i = 0; i < env.size(); ++i)
+		envp.push_back(const_cast<char *>(env[i].c_str()));
+
+	envp.push_back(NULL);
+	m_path.erase(0, 1);
+	char *av[] = { const_cast<char *>(m_path.c_str()), NULL };
+	std::cout << "url = " << av[0] << std::endl;
+
+	int pipe_in[2];
+	int pipe_out[2];
+
+	if (pipe(pipe_out) == -1 || pipe(pipe_in) == -1) {
+		Logger::log(RED, "pipe failed");
+		return;
+	}
+
+	pid_t pid = fork();
+	if (pid < 0) {
+		Logger::log(RED, "fork failed");
+		return;
+	}
+	if (pid == 0) {
+		dup2(pipe_out[1], STDOUT_FILENO);
+		close(pipe_out[0]);
+
+		if (m_method == "POST")
+			dup2(pipe_in[0], STDIN_FILENO);
+		close(pipe_in[1]);
+
+		execve(av[0], av, envp.data());
+		exit(EXIT_FAILURE);
+	}
+	else {
+		close(pipe_out[1]);
+
+		if (m_method == "POST")
+			write(pipe_in[1], body.c_str(), body.size());
+		close(pipe_in[1]);
+		close(pipe_in[0]);
+
+		char buffer[1024];
+		ssize_t bytes;
+		std::string cgi_output;
+
+		while ((bytes = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
+			cgi_output.append(buffer, bytes);
+
+		close(pipe_out[0]);
+
+		int status;
+		if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+			setError(500);
+			return;
+		}
+
+		Logger::log(WHITE, "CGI Output:\n%s\n", cgi_output.c_str());
+		m_cgiOutput = cgi_output;
+	}
+}
+
+void Request::autoIndex() {
+	std::string dir_path = m_path;
+
+	if (dir_path == "/")
+		dir_path = ".";
+	else
+		dir_path.erase(0, 1);
+
+	DIR* directory = opendir(dir_path.c_str());
+	if (!directory) {
+		Logger::log(RED, "Failed to open directory: %s", dir_path.c_str());
+		return;
+	}
+	
+	struct dirent* entry;
+	std::string page;
+	
+	// HTML header
+	page += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n";
+	page += "<title>Index of " + m_path + "</title>\n";
+	page += "<style>\nbody { font-family: sans-serif; max-width: 800px; margin: 40px auto; }\n";
+	page += "table { border-collapse: collapse; width: 100%; }\n";
+	page += "th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }\n";
+	page += "a { text-decoration: none; color: #0066cc; }\n";
+	page += "a:hover { text-decoration: underline; }\n</style>\n</head>\n";
+	
+	page += "<body>\n<h1>Index of " + m_path + "</h1>\n";
+	page += "<table>\n<tr><th>Name</th><th>Size</th></tr>\n";
+
+	if (m_path != "/")
+		page += "<tr><td><a href=\"../\">../</a></td><td>-</td></tr>\n";
+	
+	while ((entry = readdir(directory)) != NULL) {
+		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+			continue;
+			
+		std::string filename = entry->d_name;
+		Logger::log(WHITE, "Processing file: %s", filename.c_str());
+		
+		std::string fullpath = (dir_path == ".") ? filename : dir_path + "/" + filename;
+		
+		struct stat fileStat;
+		if (stat(fullpath.c_str(), &fileStat) == 0) {
+			
+			page += "<tr><td><a href=\"" + filename;
+			if (S_ISDIR(fileStat.st_mode))
+				page += "/";
+			page += "\">" + filename;
+			if (S_ISDIR(fileStat.st_mode))
+				page += "/";
+			page += "</a></td>";
+			
+			if (S_ISDIR(fileStat.st_mode))
+				page += "<td>-</td>";
+			else {
+				std::stringstream ss;
+				ss << fileStat.st_size;
+				std::string size_fileStat(ss.str());
+				page += "<td>" + size_fileStat + " bytes</td>";
+			}
+			page += "</tr>\n";
+		}
+	}
 }

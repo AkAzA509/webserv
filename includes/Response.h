@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:45:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/08/05 17:14:16 by macorso          ###   ########.fr       */
+/*   Updated: 2025/08/05 18:08:27 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,12 +64,13 @@ class Response
 		std::string getFullResponse() const;
 
 	private:
-		void		buildResponse();
-		void		setDefaultResponse();
-		void		setErrorResponse(int errorCode);
-		void		handleGet();
-		void		handlePost();
-		void		handleDelete();
+		void buildResponse();
+		void setDefaultResponse();
+		void setErrorResponse(int errorCode);
+		void handleGet();
+		void handlePost();
+		void handleDelete();
+		void handlePut();
 
 		// Helper functions
 		std::string	normalizePath(const std::string& path) const;

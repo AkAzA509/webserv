@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 12:33:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/08/05 17:26:07 by macorso          ###   ########.fr       */
+/*   Updated: 2025/08/05 18:18:19 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,28 +48,28 @@ std::pair<std::string, std::string> Response::getError(int page, const std::stri
 
 std::string Response::normalizePath(const std::string& path) const
 {
-	 std::vector<std::string> stack;
-    std::istringstream ss(path);
-    std::string token;
-    bool isAbsolute = !path.empty() && path[0] == '/';
+	std::vector<std::string> stack;
+	std::istringstream ss(path);
+	std::string token;
+	bool isAbsolute = !path.empty() && path[0] == '/';
 
-    while (std::getline(ss, token, '/')) {
-        if (token == "" || token == ".") continue;
-        if (token == "..") {
-            if (!stack.empty()) stack.pop_back();
-        } else {
-            stack.push_back(token);
-        }
-    }
+	while (std::getline(ss, token, '/')) {
+		if (token == "" || token == ".") continue;
+		if (token == "..") {
+			if (!stack.empty()) stack.pop_back();
+		} else {
+			stack.push_back(token);
+		}
+	}
 
-    std::string normalized;
-    if (isAbsolute) normalized += "/";
-    for (size_t i = 0; i < stack.size(); ++i) {
-        normalized += stack[i];
-        if (i + 1 < stack.size()) normalized += "/";
-    }
+	std::string normalized;
+	if (isAbsolute) normalized += "/";
+	for (size_t i = 0; i < stack.size(); ++i) {
+		normalized += stack[i];
+		if (i + 1 < stack.size()) normalized += "/";
+	}
 
-    return normalized.empty() ? (isAbsolute ? "/" : ".") : normalized;
+	return normalized.empty() ? (isAbsolute ? "/" : ".") : normalized;
 }
 
 std::string Response::buildPath(const std::string& page_path) const
@@ -102,7 +102,7 @@ void Response::setErrorResponse(int errorCode)
 			case 405: m_firstline = ERROR_405; m_body = P_ERROR_405; break;
 			case 411: m_firstline = ERROR_411; m_body = P_ERROR_411; break;
 			case 500: m_firstline = ERROR_500; m_body = P_ERROR_500; break;
-			default:  m_firstline = ERROR_500; m_body = P_ERROR_500; break;
+			default: m_firstline = ERROR_500; m_body = P_ERROR_500; break;
 		}
 	}
 }
@@ -143,6 +143,13 @@ void Response::handleDelete()
 	m_body = "DELETE request processed";
 }
 
+void Response::handlePut()
+{
+	// Placeholder for DELETE handling logic
+	m_firstline = HEADER_OK;
+	m_body = "PUT request processed";
+}
+
 void Response::buildResponse()
 {
 	std::string method = m_request->getMethod();
@@ -156,23 +163,30 @@ void Response::buildResponse()
 			std::pair<std::string, std::string> page = getError(it->first, it->second);
 			m_firstline = page.first;
 			m_body = page.second;
-		} else {
+		}
+		else {
 			m_firstline = ERROR_500;
 			m_body = P_ERROR_500;
 		}
-	} else {
+	}
+	else {
 		if (!m_request->getLocation().isAllowedMethod(m_request->getMethod())) {
 			std::cout << "Ca va la" << std::endl;
 			setErrorResponse(405);
-		} else {
+		}
+		if (m_request->getMethod().find("cgi-bin") != std::string::npos)
+			m_request->doCGI(a changer ca);
+		else {
 			if (method == "GET")
 				handleGet();
 			else if (method == "POST")
 				handlePost();
 			else if (method == "DELETE")
 				handleDelete();
+			else if (method == "PUT")
+				handlePut();
 			else
-				setErrorResponse(500); // Unknown method
+				setErrorResponse(500);
 		}
 	}
 	Logger::log(RED, "Body: %s\n", m_body.c_str());
