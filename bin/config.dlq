@@ -12,7 +12,7 @@
 #		autoindex off;
 #	}
 #
-#	location /tours {
+#	location /upl {
 #		autoindex on;
 #		index tours1.html;
 #		allow_methods GET POST HEAD;
@@ -35,10 +35,11 @@ server {
 	listen 8080;
 	server_name localhost;
 	host 127.0.0.1;
-	root /;
+	root /home/macorso/Projects/webserv/file;
 	#client_max_body_size 30000;
 	index page/index.html;
-	error_page 404 file/error_pages/404.html;
+	error_page 404 error_pages/404.html;
+	error_page 405 error_pages/405.html;
 
 	location / {
 		allow_methods GET HEAD POST;
@@ -49,6 +50,11 @@ server {
 		allow_methods GET HEAD POST;
 		autoindex off;
 	}
+	location /upload {
+		index page/cookie-test.html
+		allow_methods GET DELETE POST;
+		autoindex off;
+	}
 	location /put_file {
 		allow_methods DELETE PUT;
 		autoindex off;
@@ -57,12 +63,11 @@ server {
 		allow_methods DELETE GET POST;
 		autoindex off;
 	}
-	location /cgi-bin {
-		root ./;
-		allow_methods POST;
-		autoindex on;
-		index change_color.py;
-		cgi_path /usr/bin/python3 ;
-		cgi_ext .py;
-	}
+	#location /cgi-bin {
+	#	root ./;
+	#	allow_methods POST;
+	#	index change_color.py;
+	#	cgi_pass /usr/bin/python3 ;
+	#	cgi_ext .py;
+	#}
 }

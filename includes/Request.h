@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/08/02 11:00:14 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/06 18:43:34 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,59 +14,80 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 #include "Server.h"
 #include <sys/wait.h>
 #include <dirent.h>
 #include <sys/stat.h>
 
+struct BinaryInfo
+{
+	std::string field_name;
+	std::string filename;
+	std::string data;
+
+	BinaryInfo() {}
+	BinaryInfo(const std::string& name, const std::string& file, const std::string& data)
+		: field_name(name), filename(file), data(data) {}
+};
+
+std::ostream& operator<<(std::ostream& o, const BinaryInfo& info);
+
+enum Error
+{
+	E_HEADER_OK = 200,
+	E_HEADER_201 = 201,
+	E_HEADER_303 = 303,
+	E_ERROR_400 = 400,
+	E_ERROR_403 = 403,
+	E_ERROR_404 = 404,
+	E_ERROR_405 = 405,
+	E_ERROR_411 = 411,
+	E_ERROR_500 = 500,
+};
+
 class Request {
 private:
 	Location m_loc;
-	std::string m_methode;
-	std::string m_url;
-	std::string m_version;
-	std::string m_content_type;
-	std::string m_content_length;
-	std::string m_body_request;
-	std::string m_body_reponse;
-	bool m_foundBody;
-	bool m_errorPage;
-	std::string m_responseStatus;
-	std::map<std::string, std::string> m_headers; // Add headers storage
+	std::string m_method;
+	std::string m_path;
+	std::string m_httpVersion;
+	bool m_iserrorPage;
+	std::string m_boundary;
+	int m_error_page;
+	std::map<std::string, std::string> m_headers;
+	std::vector<BinaryInfo> m_BinaryInfos;
 	char **m_env;
+	std::string m_cgiOutput;
+	
+	void setError(int error_code);
+
 public:
-	Request() {};
-	Request(Location loc, std::vector<std::string>& firstRequestLine, std::vector<std::string>& request, std::string& full_request, char **env);
-	~Request() {};
+	Request();
+	Request(Server& server, const std::string& request, char **env);
 	Request(const Request& copy);
+	~Request() {};
 	Request& operator=(const Request& other);
-public:
-	void parseRequest(std::string& request);
-	bool writeFile(std::string& filename, std::string& file_data);
-	std::string getHeader(const std::string& name) const; // Add getHeader method
-	void parseHeaders(const std::vector<std::string>& request); // Add parseHeaders method
-	bool setError(std::string code, const std::string& msg);
-	bool parseBody(const std::string& content_type, const std::string& body, std::string& filename, std::string& file_data);
-public:
-	bool methodePost(std::vector<std::string>& tab, std::string& request);
-	bool methodeGet(std::vector<std::string>& tab, std::string& request);
-	bool methodeDelete(std::vector<std::string>& tab, std::string& request);
-	bool methodePut(std::vector<std::string>& tab, std::string& request);
+
 	void doCGI(size_t end_header, std::string& request);
 	void autoIndex();
 	std::vector<std::string> convertEnv();
-public:
-	std::string getBody() { return m_body_request; }
-	std::string getMethod() { return m_methode; }
-	std::string getUrl() { return m_url; }
-	std::string getVersion() { return m_version; }
-	std::string getContentType() { return m_content_type; }
-	std::string getContentLength() { return m_content_length; }
-	std::string getResponseStatus() { return m_responseStatus; }
-	bool getIsFoundBody() { return m_foundBody; }
-	bool getErrorPage() { return m_errorPage; }
-	Location getLocation() { return m_loc; }
+	
+	void parseBody(const std::string& request);
+	void parseContentDispo(const std::string& line, BinaryInfo& outBinInfo);
+	void parseHeader(const std::string& request, const Server& server);
+	void parseBinaryInfos(const std::string& body);
+	
+	const std::string& getMethod() const { return m_method; }
+	const std::string& getPath() const { return m_path; }
+	const std::map<std::string, std::string> getAllHeaders() const { return m_headers; }
+	const std::string& getHttpVersion() const { return m_httpVersion; }
+	bool IsErrorPage() const { return m_iserrorPage; }
+	int getErrorPage() const { return m_error_page; }
+	const Location& getLocation() const { return m_loc; }
+	const std::vector<BinaryInfo>& getBinaryInfos() const { return m_BinaryInfos; }
+	
+	std::string getHeader(const std::string& key) const;
+
+	friend std::ostream& operator<<(std::ostream& o, const Request& req);
 };
-
-
-std::ostream& operator<<(std::ostream& o, Request& req);

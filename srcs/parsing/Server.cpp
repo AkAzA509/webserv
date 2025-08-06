@@ -5,10 +5,14 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/07/04 10:27:25 by ggirault          #+#    #+#             */
-/*   Updated: 2025/07/31 15:00:33 by macorso          ###   ########.fr       */
+/*   Created: Invalid date        by                   #+#    #+#             */
+/*   Updated: 2025/08/05 17:07:35 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
+
+
+
 
 #include "Server.h"
 #include <numeric>
@@ -174,7 +178,6 @@ Location::~Location()
 
 Location::Location(const std::string& path) : m_path(path)
 {
-	std::cout << path << std::endl;
 	#if DEBUG
 		Logger::log(CYAN, "LOCATION DESTRUCTION");
 	#endif
@@ -184,7 +187,7 @@ Location::Location(const std::string& path) : m_path(path)
 std::ostream& operator<<(std::ostream& os, const Location& loc)
 {
 	os << "Location {\n";
-	os << "  Path: " << loc.getPath() << "\n";
+	os << "  Path: " << loc.getUploadPath() << "\n";
 	os << "  Redirection Path: " << loc.getRedirectionPath() << "\n";
 	os << "  Root: " << loc.getRoot() << "\n";
 	os << "  AutoIndex: " << (loc.isAutoIndexOn() ? "On" : "Off") << "\n";
@@ -211,10 +214,12 @@ std::ostream& operator<<(std::ostream& os, const Location& loc)
 	os << "]\n";
 
 	os << "  Allowed Methods: [";
-	const std::map<std::string, void (*)(Request&, Response&)>& methods = loc.getAllowedMethods();
-	for (std::map<std::string, void (*)(Request&, Response&)>::const_iterator it = methods.begin(); it != methods.end(); ++it) {
-		os << it->first;
-		if (snext(it) != methods.end()) os << ", ";
+	const std::vector<std::string>& methods = loc.getAllowedMethods();
+	for (std::vector<std::string>::const_iterator it = methods.begin(); it != methods.end(); ++it)
+	{
+		os << *it;
+		if (it < methods.end() - 1)
+			os << " ";
 	}
 	os << "]\n";
 

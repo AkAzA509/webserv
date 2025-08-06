@@ -3,229 +3,191 @@
 /*                                                        :::      ::::::::   */
 /*   Response.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/07/24 10:42:54 by ggirault          #+#    #+#             */
-/*   Updated: 2025/08/01 13:21:57 by ggirault         ###   ########.fr       */
+/*   Created: 2025/08/05 12:33:21 by macorso           #+#    #+#             */
+/*   Updated: 2025/08/06 18:43:18 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.h"
 #include "Logger.h"
 
-Response::Response(Request req, Server serv) : m_req(req), m_serv(serv) {
-	std::string status = m_req.getResponseStatus();
-	if (status != HEADER_OK)
-		isErrorPage(status);
-	else {
-		std::string name[4] = {"GET", "DELETE", "POST", "PUT"};
-		void(Response::*fonction[])() = {&Response::methodeWithBodyResponse, &Response::methodeWithinBodyResponse};
-		int j = -1;
-		for (int i = 0; i < 4; i++) {
-			if (name[i] == m_req.getMethod()) {
-				j = i;
-				break;
-			}
-		}
-		if (j < 0) {
-			Logger::log(RED, "Nique ta mere");
-			return ;
-		}
-		if (j == 0 || j == 1)
-			(this->*fonction[0])();
-		else
-			(this->*fonction[1])();
+Response::Response() : m_server(NULL), m_request(NULL) {}
+
+Response::Response(Request& req, Server& server) : m_server(&server), m_request(&req)
+{
+	buildResponse();
+}
+
+void Response::setDefaultResponse()
+{
+	m_header["Server"] = "Webserv/1.0";
+}
+
+std::pair<std::string, std::string> Response::getError(int page, const std::string& page_path) const
+{
+	switch (page)
+	{
+	case 404:
+		return std::make_pair(ERROR_404, loadFile(buildPath(page_path)));
+	case 403:
+		return std::make_pair(ERROR_403, loadFile(buildPath(page_path)));
+	case 400:
+		return std::make_pair(ERROR_400, loadFile(buildPath(page_path)));
+	case 405:
+		return std::make_pair(ERROR_405, loadFile(buildPath(page_path)));
+	case 411:
+		return std::make_pair(ERROR_411, loadFile(buildPath(page_path)));
+	case 500:
+		return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
+	default:
+		return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
 	}
-		
 }
 
-Response::Response(std::string& status, Server serv) : m_serv(serv) {
-	if (!status.empty())
-		isErrorPage(status);
-}
+std::string Response::normalizePath(const std::string& path) const
+{
+	std::vector<std::string> stack;
+	std::istringstream ss(path);
+	std::string token;
+	bool isAbsolute = !path.empty() && path[0] == '/';
 
-Response::Response(const Response &copy) {
-	*this = copy;
-}
-
-Response& Response::operator=(const Response &other) {
-	if (this != &other) {
-		m_req = other.m_req;
-		m_response = other.m_response;
-		m_serv = other.m_serv;
-	}
-	return *this;
-}
-
-std::string Response::getResponse() {
-	return m_response;
-}
-
-void Response::isErrorPage(std::string& error_code) {
-	std::string page[6] = {"file/error_pages/400.html", "file/error_pages/403.html", "file/error_pages/404.html",
-		"file/error_pages/405.html", "file/error_pages/411.html", "file/error_pages/500.html"};
-	std::string error[6] = {ERROR_400, ERROR_403, ERROR_404, ERROR_405, ERROR_411, ERROR_500};
-
-	int i = 0;
-	for (; i < 6; ++i) {
-		if (error[i].compare(error_code) == 0)
-			break;
-	}
-
-	std::string file = loadFile(page[i]);
-	fillResponse(HTML, file, error_code);
-}
-
-void Response::methodeWithBodyResponse() {
-	std::string type;
-	std::string file;
-	
-	// Cookie testing: Get cookies from request
-	std::string cookie_header = m_req.getHeader("Cookie");
-	
-	// Set test cookies
-	setCookie("webserv_session", "session_" + getCurrentTimestamp(), "/", 3600);
-	setCookie("last_visit", getCurrentTimestamp(), "/", 86400);
-	
-	// If cookies were received, set a response cookie
-	if (!cookie_header.empty()) {
-		setCookie("cookie_received", "yes", "/", 300);
-	}
-
-	if (m_req.getUrl() == "/") {
-		std::string url = m_serv.getRoot() + m_serv.getIndexFile(0);
-		if (url.find(".html"))
-			type = HTML;
-		else if (url.find(".css"))
-			type = CSS;
-		else if (url.find(".js"))
-			type = JS;
-		file = loadFile(url);
-		
-		// Check if index file exists
-		if (file.empty()) {
-			std::string error = ERROR_404;
-			isErrorPage(error);
-			return;
-		}
-	}
-	else {
-		// Handle other file requests - extract document root from index file
-		std::string index_path = m_serv.getIndexFile(0); // "page/index.html"
-		std::string doc_root = "";
-		
-		// Extract directory part from index file (everything before the filename)
-		size_t last_slash = index_path.find_last_of('/');
-		if (last_slash != std::string::npos) {
-			doc_root = index_path.substr(0, last_slash); // "page"
-		}
-		
-		// Construct URL: root + document_directory + requested_file
-		std::string url = m_serv.getRoot();
-		if (!doc_root.empty()) {
-			url += doc_root + m_req.getUrl();
+	while (std::getline(ss, token, '/')) {
+		if (token == "" || token == ".") continue;
+		if (token == "..") {
+			if (!stack.empty()) stack.pop_back();
 		} else {
-			url += m_req.getUrl().substr(1); // Remove leading '/'
-		}
-		
-		// Determine content type based on file extension
-		if (url.find(".html") != std::string::npos)
-			type = HTML;
-		else if (url.find(".css") != std::string::npos)
-			type = CSS;
-		else if (url.find(".js") != std::string::npos)
-			type = JS;
-		else if (url.find(".png") != std::string::npos)
-			type = "image/png";
-		else if (url.find(".jpg") != std::string::npos || url.find(".jpeg") != std::string::npos)
-			type = "image/jpeg";
-		else
-			type = "text/plain";
-			
-		file = loadFile(url);
-		
-		// Check if requested file exists
-		if (file.empty()) {
-			std::string error = ERROR_404;
-			isErrorPage(error);
-			return;
+			stack.push_back(token);
 		}
 	}
-	fillResponse(type, file, m_req.getResponseStatus());
-	
-	// Add cookies to response
-	addCookieHeader();
-}
 
-void Response::methodeWithinBodyResponse() {
-	std::string empty;
-	fillResponse(empty, empty, m_req.getResponseStatus());
-}
-
-void Response::fillResponse(std::string type, std::string& file, std::string head) {
-	std::ostringstream oss;
-	oss << file.size();
-	std::string size = oss.str();
-	m_response = head;
-	if (!type.empty()) {
-		m_response += CONTENT_LENGHT + size + RETURN;
-		m_response += CONTENT_TYPE + type + RETURN;
+	std::string normalized;
+	if (isAbsolute) normalized += "/";
+	for (size_t i = 0; i < stack.size(); ++i) {
+		normalized += stack[i];
+		if (i + 1 < stack.size()) normalized += "/";
 	}
-	m_response += LOCATION_ROOT;
-	m_response += CONNECTION_CLOSE;
-	m_response += RETURN;
-	if (!file.empty())
-		m_response += file;
+
+	return normalized.empty() ? (isAbsolute ? "/" : ".") : normalized;
 }
 
-// Cookie implementation methods
-void Response::setCookie(const std::string& name, const std::string& value, 
-                        const std::string& path, int max_age) {
-    std::string cookie_value = value;
-    
-    // Basic cookie format: name=value
-    std::string cookie_header = name + "=" + cookie_value;
-    
-    // Add path if specified
-    if (!path.empty()) {
-        cookie_header += "; Path=" + path;
-    }
-    
-    // Add max-age if specified
-    if (max_age >= 0) {
-        std::stringstream ss;
-        ss << max_age;
-        cookie_header += "; Max-Age=" + ss.str();
-    }
-    
-    // Store cookie to be added to response headers
-    m_cookies_to_set[name] = cookie_header;
+std::string Response::buildPath(const std::string& page_path) const
+{
+	std::string root = normalizePath(m_server->getRoot());
+	std::string page_path_normalized = normalizePath(page_path);
+	std::string full_path;
+
+	if (page_path_normalized.size() >= 1 && page_path_normalized[0] == '/')
+		full_path = root + page_path_normalized;
+	else
+		full_path = root + "/" + page_path_normalized;
+	return full_path;
 }
 
-void Response::addCookieHeader() {
-    // Add Set-Cookie headers to response
-    for (std::map<std::string, std::string>::iterator it = m_cookies_to_set.begin(); 
-         it != m_cookies_to_set.end(); ++it) {
-        // Find the position to insert before the final \r\n\r\n
-        size_t final_crlf = m_response.find("\r\n\r\n");
-        if (final_crlf != std::string::npos) {
-            std::string cookie_line = "Set-Cookie: " + it->second + "\r\n";
-            m_response.insert(final_crlf, cookie_line);
-        } else {
-            // If no double CRLF found, add before Connection: close
-            size_t connection_pos = m_response.find("Connection: close");
-            if (connection_pos != std::string::npos) {
-                std::string cookie_line = "Set-Cookie: " + it->second + "\r\n";
-                m_response.insert(connection_pos, cookie_line);
-            }
-        }
-    }
+void Response::setErrorResponse(int errorCode)
+{
+	const std::map<int, std::string>& pages = m_server->getErrorPages();
+	std::map<int, std::string>::const_iterator it = pages.find(errorCode);
+
+	if (it != pages.end()) {
+		std::pair<std::string, std::string> page = getError(errorCode, it->second);
+		m_firstline = page.first;
+		m_body = page.second;
+	} else {
+		switch (errorCode) {
+			case 400: m_firstline = ERROR_400; m_body = P_ERROR_400; break;
+			case 403: m_firstline = ERROR_403; m_body = P_ERROR_403; break;
+			case 404: m_firstline = ERROR_404; m_body = P_ERROR_404; break;
+			case 405: m_firstline = ERROR_405; m_body = P_ERROR_405; break;
+			case 411: m_firstline = ERROR_411; m_body = P_ERROR_411; break;
+			case 500: m_firstline = ERROR_500; m_body = P_ERROR_500; break;
+			default: m_firstline = ERROR_500; m_body = P_ERROR_500; break;
+		}
+	}
 }
 
-std::string Response::getCurrentTimestamp() {
-    time_t now = time(0);
-    std::stringstream ss;
-	ss << std::ctime(&now);
-    // ss << now;
-    return ss.str();
+std::string Response::getFullResponse() const
+{
+	std::string header;
+
+	for (std::map<std::string, std::string>::const_iterator it = m_header.begin(); it != m_header.end(); ++it)
+		header += it->first + ": " + it->second + "\r\n";
+	return header + m_body;
+}
+
+void Response::handleGet()
+{
+	std::string filePath = buildPath(m_request->getPath());
+	std::string body = loadFile(filePath);
+
+	if (!body.empty()) {
+		m_firstline = HEADER_OK;
+		m_body = body;
+	} else {
+		setErrorResponse(404);
+	}
+}
+
+void Response::handlePost()
+{
+	// Placeholder for POST handling logic
+	m_firstline = HEADER_OK;
+	m_body = "POST request processed";
+}
+
+void Response::handleDelete()
+{
+	// Placeholder for DELETE handling logic
+	m_firstline = HEADER_OK;
+	m_body = "DELETE request processed";
+}
+
+void Response::handlePut()
+{
+	// Placeholder for DELETE handling logic
+	m_firstline = HEADER_OK;
+	m_body = "PUT request processed";
+}
+
+void Response::buildResponse()
+{
+	std::string method = m_request->getMethod();
+	setDefaultResponse();
+
+	if (m_request->IsErrorPage()) {
+		const std::map<int, std::string>& pages = m_server->getErrorPages();
+		std::map<int, std::string>::const_iterator it = pages.find(m_request->getErrorPage());
+
+		if (it != pages.end()) {
+			std::pair<std::string, std::string> page = getError(it->first, it->second);
+			m_firstline = page.first;
+			m_body = page.second;
+		}
+		else {
+			m_firstline = ERROR_500;
+			m_body = P_ERROR_500;
+		}
+	}
+	else {
+		if (!m_request->getLocation().isAllowedMethod(m_request->getMethod())) {
+			std::cout << "Ca va la" << std::endl;
+			setErrorResponse(405);
+		}
+		if (m_request->getMethod().find("cgi-bin") != std::string::npos)
+			m_request->doCGI(a changer ca);
+		else {
+			if (method == "GET")
+				handleGet();
+			else if (method == "POST")
+				handlePost();
+			else if (method == "DELETE")
+				handleDelete();
+			else if (method == "PUT")
+				handlePut();
+			else
+				setErrorResponse(500);
+		}
+	}
+	Logger::log(RED, "Body: %s\n", m_body.c_str());
 }
