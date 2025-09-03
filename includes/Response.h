@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:45:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/08/05 18:08:27 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/08/30 16:46:14 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 #include <string>
 #include <map>
+#include <fstream>
 #include <set>
 #include "Request.h"
 #include "Server.h"
@@ -58,22 +59,23 @@ class Response
 		Response();
 		Response(Request& req, Server& server);
 		
-		const std::string& getFirstLine() const;
-		const std::map<std::string, std::string>& getHeaders() const;
-		const std::string& getBody() const;
+		const std::string& getFirstLine() const {return m_firstline;}
+		const std::map<std::string, std::string>& getHeaders() const {return m_header;}
+		const std::string& getBody() const {return m_body;}
 		std::string getFullResponse() const;
+		std::string joinPaths(const std::string& base, const std::string& relative) const;
+		std::vector<std::string> getLocationOrServerIndexes() const;
+		void setErrorResponse(int errorCode);
 
 	private:
 		void buildResponse();
 		void setDefaultResponse();
-		void setErrorResponse(int errorCode);
 		void handleGet();
 		void handlePost();
 		void handleDelete();
 		void handlePut();
 
 		// Helper functions
-		std::string	normalizePath(const std::string& path) const;
 		std::string	buildPath(const std::string& page_path) const;
 		std::pair<std::string, std::string> getError(int page, const std::string& page_path) const;
 
@@ -82,6 +84,7 @@ class Response
 		std::string	m_firstline;
 		std::map<std::string, std::string>	m_header;
 		std::string	m_body;
+		std::string m_servedFilePath;
 };
 
 #endif

@@ -1,7 +1,7 @@
-#include "../../includes/Server.h"
-#include "../../includes/Config.h"
-#include "../../includes/Parser.h"
-#include "../../includes/Logger.h"
+#include "Server.h"
+#include "Config.h"
+#include "Parser.h"
+#include "Logger.h"
 
 bool Server::requestComplete(std::string& request) {
     size_t crlf_pos = request.find("\r\n\r\n");
@@ -124,7 +124,6 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
                 close(client_fd);
                 continue;
             }
-            
             m_clients[client_fd] = ClientState();
             Logger::log(CYAN, "New client connected: %d", client_fd);
         }
@@ -134,16 +133,14 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
                 if (!request.empty()) {
                     try {
                         Request req(*this, request, m_ep);
-						std::cout << req << std::endl;
-						Response resp(req, *this);
-						// (void)resp;
-                        // Response resp(req, *this);
+                        Logger::log(CYAN, "Request parsed for client %d", fd);
+                        Response resp(req, *this);
                         sendClient(resp, fd);
                     } catch (const std::exception& e) {
-                        // Logger::log(RED, "Error processing request: %s", e.what());
-                        // Response resp;
-                        // resp.setErrorResponse(500);
-                        // sendClient(resp, fd);
+                        Logger::log(RED, "Error processing request: %s", e.what());
+                        Response resp;
+                        resp.setErrorResponse(500);
+                        sendClient(resp, fd);
                     }
                 }
                 cleanupClient(epfd, fd, ev[i]);
@@ -159,7 +156,6 @@ void Server::waitConnection() {
         return;
     }
 
-    // Add server sockets to epoll
     for (size_t i = 0; i < m_socketFd.size(); ++i) {
         struct epoll_event ev;
         ev.events = EPOLLIN;
@@ -181,10 +177,8 @@ void Server::waitConnection() {
             perror("epoll_wait failed");
             break;
         }
-        
-        if (ready > 0) {
+        if (ready > 0)
             acceptClient(ready, m_socketFd, ev, epfd);
-        }
     }
     
     for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ++it) {

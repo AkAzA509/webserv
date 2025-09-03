@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/08/06 18:43:51 by macorso          ###   ########.fr       */
+/*   Updated: 2025/08/30 16:42:40 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -107,10 +107,6 @@ void Request::parseBinaryInfos(const std::string& body) {
 		if (binInfo.data.size() >= 2 && binInfo.data.substr(binInfo.data.size() - 2) == "\r\n")
 			binInfo.data.resize(binInfo.data.size() - 2);
 
-		// Add these checks in parseBinaryInfos:
-		std::cout << "Boundary: '" << m_boundary << "'" << std::endl;
-		std::cout << "Body size: " << body.size() << std::endl;
-
 		m_BinaryInfos.push_back(binInfo);
 	}
 }
@@ -133,6 +129,8 @@ void Request::parseBody(const std::string& request) {
 				parseBinaryInfos(body);
 		}
 	}
+	else
+		m_rawBody = body;
 }
 
 void Request::parseHeader(const std::string& request, const Server& server) {
@@ -145,21 +143,20 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 
 	std::string header_block = request.substr(0, header_end);
 	std::vector<std::string> headers = splitset(header_block, "\r\n");
+	if (headers.empty()) {
+		setError(E_ERROR_400);
+		return;
+	}
 	std::vector<std::string> req_line = splitset(headers[0], " ");
-
 	if (req_line.size() != 3) {
 		setError(E_ERROR_400);
 		return;
 	}
-
 	m_method = req_line[0];
 	m_path = req_line[1];
-
 	if (m_path.empty() || m_path[0] != '/')
 		m_path = "/" + m_path;
-
 	m_httpVersion = req_line[2];
-
 	std::transform(m_method.begin(), m_method.end(), m_method.begin(), ::toupper);
 
 	const Location* best_match = NULL;
@@ -175,11 +172,16 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 	}
 
 	if (!best_match) {
-		std::cout << "La" << std::endl;
+		Logger::log(RED, "No matching location for path: %s", m_path.c_str());
 		setError(E_ERROR_404);
 		return;
 	}
 	m_loc = *best_match;
+	m_isAutoIndex = false;
+	if (m_loc.isAutoIndexOn()) {
+		m_isAutoIndex = true;
+		autoIndex();
+	}
 
 	for (size_t i = 1; i < headers.size(); i++) {
 		size_t colon = headers[i].find(':');
@@ -267,230 +269,209 @@ std::vector<std::string> Request::convertEnv() {
 	return env;
 }
 
-void Request::doCGI(size_t end_header, std::string& request) {
-	std::vector<std::string> env = convertEnv();
+// void Request::doCGI(size_t end_header, std::string& request) {
+// 	std::vector<std::string> env = convertEnv();
 
-	env.push_back("REQUEST_METHOD=" + m_method);
-	env.push_back("SERVER_PROTOCOL=HTTP/1.1");
+// 	env.push_back("REQUEST_METHOD=" + m_method);
+// 	env.push_back("SERVER_PROTOCOL=HTTP/1.1");
 
-	std::string body = request.substr(end_header);
+// 	std::string body = request.substr(end_header);
 
-	if (m_method == "GET") {
-		size_t query_pos = m_path.find('?');
-		std::string query = (query_pos != std::string::npos) ? m_path.substr(query_pos + 1) : "";
-		env.push_back("QUERY_STRING=" + query);
-	}
-	else if (m_method == "POST") {
-		std::stringstream ss;
-		ss << body.size();
-		std::string len = ss.str();
-		env.push_back("CONTENT_LENGTH=" + len);
-	}
+// 	if (m_method == "GET") {
+// 		size_t query_pos = m_path.find('?');
+// 		std::string query = (query_pos != std::string::npos) ? m_path.substr(query_pos + 1) : "";
+// 		env.push_back("QUERY_STRING=" + query);
+// 	}
+// 	else if (m_method == "POST") {
+// 		std::stringstream ss;
+// 		ss << body.size();
+// 		std::string len = ss.str();
+// 		env.push_back("CONTENT_LENGTH=" + len);
+// 	}
 
-	std::vector<char *> envp;
-	for (size_t i = 0; i < env.size(); ++i)
-		envp.push_back(const_cast<char *>(env[i].c_str()));
+// 	std::vector<char *> envp;
+// 	for (size_t i = 0; i < env.size(); ++i)
+// 		envp.push_back(const_cast<char *>(env[i].c_str()));
 
-	envp.push_back(NULL);
-	m_path.erase(0, 1);
-	char *av[] = { const_cast<char *>(m_path.c_str()), NULL };
-	std::cout << "url = " << av[0] << std::endl;
+// 	envp.push_back(NULL);
+// 	m_path.erase(0, 1);
+// 	char *av[] = { const_cast<char *>(m_path.c_str()), NULL };
+// 	std::cout << "url = " << av[0] << std::endl;
 
-	int pipe_in[2];
-	int pipe_out[2];
+// 	int pipe_in[2];
+// 	int pipe_out[2];
 
-	if (pipe(pipe_out) == -1 || pipe(pipe_in) == -1) {
-		Logger::log(RED, "pipe failed");
-		return;
-	}
+// 	if (pipe(pipe_out) == -1 || pipe(pipe_in) == -1) {
+// 		Logger::log(RED, "pipe failed");
+// 		return;
+// 	}
 
-	pid_t pid = fork();
-	if (pid < 0) {
-		Logger::log(RED, "fork failed");
-		return;
-	}
-	if (pid == 0) {
-		dup2(pipe_out[1], STDOUT_FILENO);
-		close(pipe_out[0]);
+// 	pid_t pid = fork();
+// 	if (pid < 0) {
+// 		Logger::log(RED, "fork failed");
+// 		return;
+// 	}
+// 	if (pid == 0) {
+// 		dup2(pipe_out[1], STDOUT_FILENO);
+// 		close(pipe_out[0]);
 
-		if (m_method == "POST")
-			dup2(pipe_in[0], STDIN_FILENO);
-		close(pipe_in[1]);
+// 		if (m_method == "POST")
+// 			dup2(pipe_in[0], STDIN_FILENO);
+// 		close(pipe_in[1]);
 
-		execve(av[0], av, envp.data());
-		exit(EXIT_FAILURE);
-	}
-	else {
-		close(pipe_out[1]);
+// 		execve(av[0], av, envp.data());
+// 		exit(EXIT_FAILURE);
+// 	}
+// 	else {
+// 		close(pipe_out[1]);
 
-		if (m_method == "POST")
-			write(pipe_in[1], body.c_str(), body.size());
-		close(pipe_in[1]);
-		close(pipe_in[0]);
+// 		if (m_method == "POST")
+// 			write(pipe_in[1], body.c_str(), body.size());
+// 		close(pipe_in[1]);
+// 		close(pipe_in[0]);
 
-		char buffer[1024];
-		ssize_t bytes;
-		std::string cgi_output;
+// 		char buffer[1024];
+// 		ssize_t bytes;
+// 		std::string cgi_output;
 
-		while ((bytes = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
-			cgi_output.append(buffer, bytes);
+// 		while ((bytes = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
+// 			cgi_output.append(buffer, bytes);
 
-		close(pipe_out[0]);
+// 		close(pipe_out[0]);
 
-		int status;
-		if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-			setError(500);
-			return;
-		}
+// 		int status;
+// 		if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+// 			setError(500);
+// 			return;
+// 		}
 
-		Logger::log(WHITE, "CGI Output:\n%s\n", cgi_output.c_str());
-		m_cgiOutput = cgi_output;
-	}
-}
+// 		Logger::log(WHITE, "CGI Output:\n%s\n", cgi_output.c_str());
+// 		m_cgiOutput = cgi_output;
+// 	}
+// }
 
-void Request::autoIndex() {
-	std::string dir_path = m_path;
-
-	if (dir_path == "/")
-		dir_path = ".";
-	else
-		dir_path.erase(0, 1);
-
-	DIR* directory = opendir(dir_path.c_str());
-	if (!directory) {
-		Logger::log(RED, "Failed to open directory: %s", dir_path.c_str());
-		return;
-	}
-	
-	struct dirent* entry;
-	std::string page;
-	
-	// HTML header
-	page += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n";
-	page += "<title>Index of " + m_path + "</title>\n";
-	page += "<style>\nbody { font-family: sans-serif; max-width: 800px; margin: 40px auto; }\n";
-	page += "table { border-collapse: collapse; width: 100%; }\n";
-	page += "th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }\n";
-	page += "a { text-decoration: none; color: #0066cc; }\n";
-	page += "a:hover { text-decoration: underline; }\n</style>\n</head>\n";
-	
-	page += "<body>\n<h1>Index of " + m_path + "</h1>\n";
-	page += "<table>\n<tr><th>Name</th><th>Size</th></tr>\n";
-
-	if (m_path != "/")
-		page += "<tr><td><a href=\"../\">../</a></td><td>-</td></tr>\n";
-	
-	while ((entry = readdir(directory)) != NULL) {
-		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-			continue;
-			
-		std::string filename = entry->d_name;
-		Logger::log(WHITE, "Processing file: %s", filename.c_str());
-		
-		std::string fullpath = (dir_path == ".") ? filename : dir_path + "/" + filename;
-		
-		struct stat fileStat;
-		if (stat(fullpath.c_str(), &fileStat) == 0) {
-			
-			page += "<tr><td><a href=\"" + filename;
-			if (S_ISDIR(fileStat.st_mode))
-				page += "/";
-			page += "\">" + filename;
-			if (S_ISDIR(fileStat.st_mode))
-				page += "/";
-			page += "</a></td>";
-			
-			if (S_ISDIR(fileStat.st_mode))
-				page += "<td>-</td>";
-			else {
-				std::stringstream ss;
-				ss << fileStat.st_size;
-				std::string size_fileStat(ss.str());
-				page += "<td>" + size_fileStat + " bytes</td>";
-			}
-			page += "</tr>\n";
-		}
-	}
-}
-
-
-
-void Request::autoIndex() {
-    std::string dir_path = m_url;
-    
-    if (dir_path == "/") {
-        dir_path = ".";
-    } else {
-        dir_path.erase(0, 1);
+bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string>& args, const std::vector<std::string>& extraEnv, std::string& cgiOutput) {
+    int pipe_out[2];
+    if (pipe(pipe_out) == -1) {
+        Logger::log(RED, "pipe failed for CGI");
+        return false;
     }
-    
-    DIR* directory = opendir(dir_path.c_str());
+    pid_t pid = fork();
+    if (pid < 0) {
+        Logger::log(RED, "fork failed for CGI");
+        close(pipe_out[0]);
+        close(pipe_out[1]);
+        return false;
+    }
+    if (pid == 0) {
+        dup2(pipe_out[1], STDOUT_FILENO);
+        close(pipe_out[0]);
+        close(pipe_out[1]);
+        // Prépare av[]
+        size_t argc = args.size() + 2;
+        char **av = new char*[argc];
+        av[0] = const_cast<char *>(scriptPath.c_str());
+        for (size_t i = 0; i < args.size(); ++i)
+            av[i+1] = const_cast<char *>(args[i].c_str());
+        av[argc-1] = NULL;
+        // Prépare envp[]
+        std::vector<std::string> envVec;
+        // Ajoute m_env
+        for (size_t i = 0; m_env && m_env[i]; ++i)
+            envVec.push_back(m_env[i]);
+        // Ajoute extraEnv
+        for (size_t i = 0; i < extraEnv.size(); ++i)
+            envVec.push_back(extraEnv[i]);
+        char **envp = new char*[envVec.size() + 1];
+        for (size_t i = 0; i < envVec.size(); ++i)
+            envp[i] = const_cast<char *>(envVec[i].c_str());
+        envp[envVec.size()] = NULL;
+        execve(av[0], av, envp);
+        delete[] av;
+        delete[] envp;
+        exit(EXIT_FAILURE);
+    } else {
+        close(pipe_out[1]);
+        char buffer[256];
+        cgiOutput.clear();
+        ssize_t bytes;
+        while ((bytes = read(pipe_out[0], buffer, sizeof(buffer))) > 0) {
+            cgiOutput.append(buffer, bytes);
+        }
+        close(pipe_out[0]);
+        int status;
+        if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            Logger::log(RED, "CGI script failed");
+            return false;
+        }
+        return true;
+    }
+}
+
+void Request::autoIndex() {
+    // Récupère le root de la location (adapté selon ta structure)
+    std::string root = m_loc.getRoot(); // ou m_server->getRoot() si tu es côté Server
+
+    // Combine root + path demandé, puis nettoie
+    std::string localPath = normalizePath(root + "/" + m_path);
+
+    // Ouvre le dossier localPath
+    DIR* directory = opendir(localPath.c_str());
     if (!directory) {
-        Logger::log(RED, "Failed to open directory: %s", dir_path.c_str());
+        Logger::log(RED, "Failed to open directory: %s", localPath.c_str());
         return;
     }
-    
+
     struct dirent* entry;
     std::string page;
-    
+
     // HTML header
     page += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n";
-    page += "<title>Index of " + m_url + "</title>\n";
+    page += "<title>Index of " + m_path + "</title>\n";
     page += "<style>\nbody { font-family: sans-serif; max-width: 800px; margin: 40px auto; }\n";
     page += "table { border-collapse: collapse; width: 100%; }\n";
     page += "th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }\n";
     page += "a { text-decoration: none; color: #0066cc; }\n";
     page += "a:hover { text-decoration: underline; }\n</style>\n</head>\n";
-    
-    page += "<body>\n<h1>Index of " + m_url + "</h1>\n";
+    page += "<body>\n<h1>Index of " + m_path + "</h1>\n";
     page += "<table>\n<tr><th>Name</th><th>Size</th></tr>\n";
-    
+
     // Parent directory link
-    if (m_url != "/") {
+    if (m_path != "/") {
         page += "<tr><td><a href=\"../\">../</a></td><td>-</td></tr>\n";
     }
-    
-    // Directory contents
-    while ((entry = readdir(directory)) != NULL) {
-    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-        continue;
-        
-    std::string filename = entry->d_name;
-    Logger::log(WHITE, "Processing file: %s", filename.c_str());
-    
-    std::string fullpath = (dir_path == ".") ? filename : dir_path + "/" + filename;
-    
-    struct stat fileStat;
-    if (stat(fullpath.c_str(), &fileStat) == 0) {
-        Logger::log(WHITE, "Building HTML for: %s", filename.c_str());
-        
-        page += "<tr><td><a href=\"" + filename;
-        if (S_ISDIR(fileStat.st_mode))
-            page += "/";
-        page += "\">" + filename;
-        if (S_ISDIR(fileStat.st_mode))
-            page += "/";
-        page += "</a></td>";
-        
-        if (S_ISDIR(fileStat.st_mode)) {
-            page += "<td>-</td>";
-        } else {
-            std::stringstream ss;
-            ss << fileStat.st_size;
-            std::string size_fileStat(ss.str());
-            page += "<td>" + size_fileStat + " bytes</td>";
-            Logger::log(WHITE, "File size: %s bytes", size_fileStat.c_str());
-        }
-        page += "</tr>\n";
-        
-        Logger::log(WHITE, "HTML built successfully for: %s", filename.c_str());
-    } else {
-        Logger::log(RED, "stat() failed for: %s", filename.c_str());
-    }
-}
 
-Logger::log(WHITE, "Loop finished, closing tags...");
-page += "</table>\n</body>\n</html>";
+    while ((entry = readdir(directory)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        std::string filename = entry->d_name;
+        std::string fullpath = localPath + "/" + filename;
+
+        struct stat fileStat;
+        if (stat(fullpath.c_str(), &fileStat) == 0) {
+            page += "<tr><td><a href=\"" + filename;
+            if (S_ISDIR(fileStat.st_mode))
+                page += "/";
+            page += "\">" + filename;
+            if (S_ISDIR(fileStat.st_mode))
+                page += "/";
+            page += "</a></td>";
+
+            if (S_ISDIR(fileStat.st_mode)) {
+                page += "<td>-</td>";
+            } else {
+                std::stringstream ss;
+                ss << fileStat.st_size;
+                page += "<td>" + ss.str() + " bytes</td>";
+            }
+            page += "</tr>\n";
+        }
+    }
+
+    page += "</table>\n</body>\n</html>";
     closedir(directory);
-	std::cout << "page :" << page << std::endl;
+
+    m_autoIndexPage = page;
+	Logger::log(CYAN, "Autoindex page generated for path: %s", m_path.c_str());
 }

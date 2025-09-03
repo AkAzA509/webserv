@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/08/06 18:43:34 by macorso          ###   ########.fr       */
+/*   Updated: 2025/08/30 16:31:58 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,6 +59,9 @@ private:
 	std::vector<BinaryInfo> m_BinaryInfos;
 	char **m_env;
 	std::string m_cgiOutput;
+	std::string m_autoIndexPage;
+	bool m_isAutoIndex;
+	std::string m_rawBody;
 	
 	void setError(int error_code);
 
@@ -69,7 +72,6 @@ public:
 	~Request() {};
 	Request& operator=(const Request& other);
 
-	void doCGI(size_t end_header, std::string& request);
 	void autoIndex();
 	std::vector<std::string> convertEnv();
 	
@@ -79,6 +81,10 @@ public:
 	void parseBinaryInfos(const std::string& body);
 	
 	const std::string& getMethod() const { return m_method; }
+	bool getIsAutoIndex() const { return m_isAutoIndex; }
+	const std::string& getCgiOutput() const { return m_cgiOutput; }
+	const std::string& getAutoIndex() const { return m_autoIndexPage; }
+	const std::string& getRawBody() const { return m_rawBody; }
 	const std::string& getPath() const { return m_path; }
 	const std::map<std::string, std::string> getAllHeaders() const { return m_headers; }
 	const std::string& getHttpVersion() const { return m_httpVersion; }
@@ -90,4 +96,5 @@ public:
 	std::string getHeader(const std::string& key) const;
 
 	friend std::ostream& operator<<(std::ostream& o, const Request& req);
+	bool doCGI(const std::string& scriptPath, const std::vector<std::string>& args, const std::vector<std::string>& extraEnv, std::string& cgiOutput);
 };

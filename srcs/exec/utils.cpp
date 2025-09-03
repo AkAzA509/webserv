@@ -1,7 +1,7 @@
-#include "../../includes/Server.h"
-#include "../../includes/Config.h"
-#include "../../includes/Parser.h"
-#include "../../includes/Logger.h"
+#include "Server.h"
+#include "Config.h"
+#include "Parser.h"
+#include "Logger.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/epoll.h>
@@ -149,4 +149,32 @@ std::string getMimeType(const std::string& path) {
     if (ext == "xml") return "application/xml";
 
     return "application/octet-stream";
+}
+
+
+// Correction et robustesse pour normaliser les chemins
+std::string normalizePath(const std::string& path)
+{
+	std::vector<std::string> stack;
+	Logger::log(YELLOW, "normalizePath input: '%s', size: %zu\n", path.c_str(), path.size());
+	std::istringstream ss(path);
+	std::string token;
+	bool isAbsolute = !path.empty() && path[0] == '/';
+
+	while (std::getline(ss, token, '/')) {
+		if (token.empty() || token == ".") continue;
+		if (token == "..") {
+			if (!stack.empty()) stack.pop_back();
+		} else {
+			stack.push_back(token);
+		}
+	}
+	std::string normalized;
+	if (isAbsolute) normalized += "/";
+	for (size_t i = 0; i < stack.size(); ++i) {
+		normalized += stack[i];
+		if (i + 1 < stack.size()) normalized += "/";
+	}
+	if (normalized.empty()) return isAbsolute ? "/" : ".";
+	return normalized;
 }

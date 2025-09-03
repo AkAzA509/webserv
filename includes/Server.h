@@ -178,6 +178,8 @@ void print_error(const std::string& str, int fd);
 std::string loadFile(const std::string& path);
 void addEpollClient(int client_fd, int epfd, std::vector<int> fd);
 void addEpollServer(std::vector<int> fd, int epfd);
+std::string getMimeType(const std::string& path);
+std::string normalizePath(const std::string& path);
 
 // Signaux
 
