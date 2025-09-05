@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Parser.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/08/05 17:05:42 by macorso          ###   ########.fr       */
+/*   Updated: 2025/09/04 13:54:03 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -555,7 +555,7 @@ Server Parser::parseServer(const std::string& data, char **ep) const
             else if (dir.name == "root") {
                 server_root = parseRoot(dir);
                 server.setRoot(server_root);
-                Logger::log(RED, "Parsed Root: %s\n", server.getRoot().c_str());
+                // Logger::log(RED, "Parsed Root: %s\n", server.getRoot().c_str());
             }
             else if (dir.name == "index") {
                 server_index_files.clear();

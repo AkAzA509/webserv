@@ -104,6 +104,7 @@ class Location
 struct ClientState {
 	std::string request_buffer;
 	bool request_complete;
+	time_t last_activity;
 	ClientState() : request_complete(false) {}
 };
 
@@ -122,6 +123,7 @@ class Server
 		std::string m_uploadPath;
 		std::vector<Location> m_locations;
 		std::map<int, ClientState> m_clients;
+		std::string m_forcedResponse;
 	public:
 		Server();
 		~Server();
@@ -133,6 +135,8 @@ class Server
 		void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd);
 		void sendClient(Response& resp, int client_fd);
 		void cleanupClient(int epfd, int client_fd, struct epoll_event ev);
+		void checkTimeouts(int epfd, struct epoll_event *ev, int ready);
+
 	public:
 		std::vector<size_t> getPorts() const;
 		void setUploadPath(const std::string& path) {
@@ -176,8 +180,6 @@ std::ostream& operator<<(std::ostream& o, const Server& server);
 std::vector<std::string> splitRequest(const std::string& str);
 void print_error(const std::string& str, int fd);
 std::string loadFile(const std::string& path);
-void addEpollClient(int client_fd, int epfd, std::vector<int> fd);
-void addEpollServer(std::vector<int> fd, int epfd);
 std::string getMimeType(const std::string& path);
 std::string normalizePath(const std::string& path);
 

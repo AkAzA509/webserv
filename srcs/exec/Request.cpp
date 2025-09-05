@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/08/30 16:42:40 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/04 13:53:23 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,6 @@ Request::Request(Server& server, const std::string& request, char **env)
 		parseBody(request);
 }
 
-// Case-insensitive string comparison helper
 bool iequals(const std::string& a, const std::string& b) {
 	if (a.length() != b.length())
 		return false;
@@ -85,11 +84,9 @@ void Request::parseBinaryInfos(const std::string& body) {
 		std::string part = body.substr(start_pos, end_pos - start_pos);
 		start_pos = end_pos + boundary.length();
 
-		// Skip leading CRLF
 		if (part.substr(0, 2) == "\r\n")
 			part = part.substr(2);
-		
-		// Separate headers and body
+
 		size_t header_end = part.find("\r\n\r\n");
 		if (header_end == std::string::npos)
 			continue;
@@ -210,56 +207,48 @@ void Request::setError(int error_code) {
 }
 
 std::ostream& operator<<(std::ostream& o, const Request& req) {
-    // Basic request info
-    o << "=== HTTP Request ===" << std::endl;
-    o << "Method: " << req.getMethod() << std::endl;
-    o << "Path: " << req.getPath() << std::endl;
-    o << "HTTP Version: " << req.getHttpVersion() << std::endl;
-    
-    // Location info
-    const Location& loc = req.getLocation();
-    o << "\n=== Location Configuration ===" << std::endl;
-    o << "Path: " << loc.getPath() << std::endl;
-    o << "Root: " << loc.getRoot() << std::endl;
-    o << "Upload Path: " << loc.getUploadPath() << std::endl;
-    o << "Autoindex: " << (loc.isAutoIndexOn() ? "On" : "Off") << std::endl;
-    o << "Index Files: ";
-    const std::vector<std::string>& indexes = loc.getIndexFiles();
-    for (size_t i = 0; i < indexes.size(); ++i) {
-        if (i != 0) o << ", ";
-        o << indexes[i];
-    }
-    o << std::endl;
-    
-    // Error status
-    if (req.IsErrorPage()) {
-        o << "\n=== Error ===" << std::endl;
-        o << "Error Code: " << req.getErrorPage() << std::endl;
-    }
-    
-    // Headers
-    o << "\n=== Headers ===" << std::endl;
+	o << "=== HTTP Request ===" << std::endl;
+	o << "Method: " << req.getMethod() << std::endl;
+	o << "Path: " << req.getPath() << std::endl;
+	o << "HTTP Version: " << req.getHttpVersion() << std::endl;
+
+	const Location& loc = req.getLocation();
+	o << "\n=== Location Configuration ===" << std::endl;
+	o << "Path: " << loc.getPath() << std::endl;
+	o << "Root: " << loc.getRoot() << std::endl;
+	o << "Upload Path: " << loc.getUploadPath() << std::endl;
+	o << "Autoindex: " << (loc.isAutoIndexOn() ? "On" : "Off") << std::endl;
+	o << "Index Files: ";
+	const std::vector<std::string>& indexes = loc.getIndexFiles();
+	for (size_t i = 0; i < indexes.size(); ++i) {
+		if (i != 0) o << ", ";
+		o << indexes[i];
+	}
+	o << std::endl;
+
+	if (req.IsErrorPage()) {
+		o << "\n=== Error ===" << std::endl;
+		o << "Error Code: " << req.getErrorPage() << std::endl;
+	}
+
+	o << "\n=== Headers ===" << std::endl;
 	const std::map<std::string, std::string>& headers = req.getAllHeaders();
 	for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
 		o << it->first << ": " << it->second << std::endl;
-    // You would need to add a method to get all headers from Request
-    // For example: const std::map<std::string, std::string>& headers = req.getAllHeaders();
-    // Then iterate through them
-    
-    // Binary data (uploads)
-    const std::vector<BinaryInfo>& binaries = req.getBinaryInfos();
-    if (!binaries.empty()) {
-        o << "\n=== Binary Data ===" << std::endl;
-        for (size_t i = 0; i < binaries.size(); ++i) {
-            const BinaryInfo& bin = binaries[i];
-            o << "Field: " << bin.field_name << std::endl;
-            o << "Filename: " << bin.filename << std::endl;
-            o << "Data Size: " << bin.data.size() << " bytes" << std::endl;
-            if (i != binaries.size() - 1) o << "---" << std::endl;
-        }
-    }
-    
-    return o;
+
+	const std::vector<BinaryInfo>& binaries = req.getBinaryInfos();
+	if (!binaries.empty()) {
+		o << "\n=== Binary Data ===" << std::endl;
+		for (size_t i = 0; i < binaries.size(); ++i) {
+			const BinaryInfo& bin = binaries[i];
+			o << "Field: " << bin.field_name << std::endl;
+			o << "Filename: " << bin.filename << std::endl;
+			o << "Data Size: " << bin.data.size() << " bytes" << std::endl;
+			if (i != binaries.size() - 1) o << "---" << std::endl;
+		}
+	}
+	
+	return o;
 }
 
 std::vector<std::string> Request::convertEnv() {
@@ -351,127 +340,123 @@ std::vector<std::string> Request::convertEnv() {
 // }
 
 bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string>& args, const std::vector<std::string>& extraEnv, std::string& cgiOutput) {
-    int pipe_out[2];
-    if (pipe(pipe_out) == -1) {
-        Logger::log(RED, "pipe failed for CGI");
-        return false;
-    }
-    pid_t pid = fork();
-    if (pid < 0) {
-        Logger::log(RED, "fork failed for CGI");
-        close(pipe_out[0]);
-        close(pipe_out[1]);
-        return false;
-    }
-    if (pid == 0) {
-        dup2(pipe_out[1], STDOUT_FILENO);
-        close(pipe_out[0]);
-        close(pipe_out[1]);
-        // Prépare av[]
-        size_t argc = args.size() + 2;
-        char **av = new char*[argc];
-        av[0] = const_cast<char *>(scriptPath.c_str());
-        for (size_t i = 0; i < args.size(); ++i)
-            av[i+1] = const_cast<char *>(args[i].c_str());
-        av[argc-1] = NULL;
-        // Prépare envp[]
-        std::vector<std::string> envVec;
-        // Ajoute m_env
-        for (size_t i = 0; m_env && m_env[i]; ++i)
-            envVec.push_back(m_env[i]);
-        // Ajoute extraEnv
-        for (size_t i = 0; i < extraEnv.size(); ++i)
-            envVec.push_back(extraEnv[i]);
-        char **envp = new char*[envVec.size() + 1];
-        for (size_t i = 0; i < envVec.size(); ++i)
-            envp[i] = const_cast<char *>(envVec[i].c_str());
-        envp[envVec.size()] = NULL;
-        execve(av[0], av, envp);
-        delete[] av;
-        delete[] envp;
-        exit(EXIT_FAILURE);
-    } else {
-        close(pipe_out[1]);
-        char buffer[256];
-        cgiOutput.clear();
-        ssize_t bytes;
-        while ((bytes = read(pipe_out[0], buffer, sizeof(buffer))) > 0) {
-            cgiOutput.append(buffer, bytes);
-        }
-        close(pipe_out[0]);
-        int status;
-        if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-            Logger::log(RED, "CGI script failed");
-            return false;
-        }
-        return true;
-    }
+	int pipe_out[2];
+	if (pipe(pipe_out) == -1) {
+		Logger::log(RED, "pipe failed for CGI");
+		return false;
+	}
+	pid_t pid = fork();
+	if (pid < 0) {
+		Logger::log(RED, "fork failed for CGI");
+		close(pipe_out[0]);
+		close(pipe_out[1]);
+		return false;
+	}
+	if (pid == 0) {
+		dup2(pipe_out[1], STDOUT_FILENO);
+		close(pipe_out[0]);
+		close(pipe_out[1]);
+		
+		size_t argc = args.size() + 2;
+		
+		char **av = new char*[argc];
+		av[0] = const_cast<char *>(scriptPath.c_str());
+		for (size_t i = 0; i < args.size(); ++i)
+			av[i+1] = const_cast<char *>(args[i].c_str());
+			
+		av[argc-1] = NULL;
+		std::vector<std::string> envVec;
+		for (size_t i = 0; m_env && m_env[i]; ++i)
+			envVec.push_back(m_env[i]);
+			
+		for (size_t i = 0; i < extraEnv.size(); ++i)
+			envVec.push_back(extraEnv[i]);
+			
+		char **envp = new char*[envVec.size() + 1];
+		for (size_t i = 0; i < envVec.size(); ++i)
+			envp[i] = const_cast<char *>(envVec[i].c_str());
+			
+		envp[envVec.size()] = NULL;
+		execve(av[0], av, envp);
+		delete[] av;
+		delete[] envp;
+		exit(EXIT_FAILURE);
+	} else {
+		close(pipe_out[1]);
+		char buffer[256];
+		cgiOutput.clear();
+		ssize_t bytes;
+		while ((bytes = read(pipe_out[0], buffer, sizeof(buffer))) > 0) {
+			cgiOutput.append(buffer, bytes);
+		}
+		close(pipe_out[0]);
+		int status;
+		if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+			Logger::log(RED, "CGI script failed");
+			return false;
+		}
+		return true;
+	}
 }
 
 void Request::autoIndex() {
-    // Récupère le root de la location (adapté selon ta structure)
-    std::string root = m_loc.getRoot(); // ou m_server->getRoot() si tu es côté Server
+	std::string root = m_loc.getRoot();
+	// Logger::log(CYAN, "Generating autoindex for path: %s with root: %s", m_path.c_str(), root.c_str());
+	std::string localPath = normalizePath(root + "/" + m_path);
 
-    // Combine root + path demandé, puis nettoie
-    std::string localPath = normalizePath(root + "/" + m_path);
+	DIR* directory = opendir(localPath.c_str());
+	if (!directory) {
+		Logger::log(RED, "Failed to open directory: %s", localPath.c_str());
+		return;
+	}
 
-    // Ouvre le dossier localPath
-    DIR* directory = opendir(localPath.c_str());
-    if (!directory) {
-        Logger::log(RED, "Failed to open directory: %s", localPath.c_str());
-        return;
-    }
+	struct dirent* entry;
+	std::string page;
 
-    struct dirent* entry;
-    std::string page;
+	page += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n";
+	page += "<title>Index of " + m_path + "</title>\n";
+	page += "<style>\nbody { font-family: sans-serif; max-width: 800px; margin: 40px auto; }\n";
+	page += "table { border-collapse: collapse; width: 100%; }\n";
+	page += "th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }\n";
+	page += "a { text-decoration: none; color: #0066cc; }\n";
+	page += "a:hover { text-decoration: underline; }\n</style>\n</head>\n";
+	page += "<body>\n<h1>Index of " + m_path + "</h1>\n";
+	page += "<table>\n<tr><th>Name</th><th>Size</th></tr>\n";
 
-    // HTML header
-    page += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n";
-    page += "<title>Index of " + m_path + "</title>\n";
-    page += "<style>\nbody { font-family: sans-serif; max-width: 800px; margin: 40px auto; }\n";
-    page += "table { border-collapse: collapse; width: 100%; }\n";
-    page += "th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }\n";
-    page += "a { text-decoration: none; color: #0066cc; }\n";
-    page += "a:hover { text-decoration: underline; }\n</style>\n</head>\n";
-    page += "<body>\n<h1>Index of " + m_path + "</h1>\n";
-    page += "<table>\n<tr><th>Name</th><th>Size</th></tr>\n";
+	if (m_path != "/")
+		page += "<tr><td><a href=\"../\">../</a></td><td>-</td></tr>\n";
 
-    // Parent directory link
-    if (m_path != "/") {
-        page += "<tr><td><a href=\"../\">../</a></td><td>-</td></tr>\n";
-    }
+	while ((entry = readdir(directory)) != NULL) {
+		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+			continue;
 
-    while ((entry = readdir(directory)) != NULL) {
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-            continue;
+		std::string filename = entry->d_name;
+		std::string fullpath = localPath + "/" + filename;
 
-        std::string filename = entry->d_name;
-        std::string fullpath = localPath + "/" + filename;
+		struct stat fileStat;
+		if (stat(fullpath.c_str(), &fileStat) == 0) {
+			page += "<tr><td><a href=\"" + filename;
+			if (S_ISDIR(fileStat.st_mode))
+				page += "/";
+			page += "\">" + filename;
+			if (S_ISDIR(fileStat.st_mode))
+				page += "/";
+			page += "</a></td>";
 
-        struct stat fileStat;
-        if (stat(fullpath.c_str(), &fileStat) == 0) {
-            page += "<tr><td><a href=\"" + filename;
-            if (S_ISDIR(fileStat.st_mode))
-                page += "/";
-            page += "\">" + filename;
-            if (S_ISDIR(fileStat.st_mode))
-                page += "/";
-            page += "</a></td>";
+			if (S_ISDIR(fileStat.st_mode))
+				page += "<td>-</td>";
+			else {
+				std::stringstream ss;
+				ss << fileStat.st_size;
+				page += "<td>" + ss.str() + " bytes</td>";
+			}
+			page += "</tr>\n";
+		}
+	}
 
-            if (S_ISDIR(fileStat.st_mode)) {
-                page += "<td>-</td>";
-            } else {
-                std::stringstream ss;
-                ss << fileStat.st_size;
-                page += "<td>" + ss.str() + " bytes</td>";
-            }
-            page += "</tr>\n";
-        }
-    }
+	page += "</table>\n</body>\n</html>";
+	closedir(directory);
 
-    page += "</table>\n</body>\n</html>";
-    closedir(directory);
-
-    m_autoIndexPage = page;
-	Logger::log(CYAN, "Autoindex page generated for path: %s", m_path.c_str());
+	m_autoIndexPage = page;
+	// Logger::log(CYAN, "Autoindex page generated for path: %s", m_path.c_str());
 }

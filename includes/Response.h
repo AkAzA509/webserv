@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:45:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/08/30 16:46:14 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/04 15:53:02 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,9 @@
 #define P_ERROR_403 "<html><head><title>403 Forbidden</title></head><body><h1>403 Forbidden</h1><p>You don't have permission to access this resource.</p></body></html>"
 #define P_ERROR_404 "<html><head><title>404 Not Found</title></head><body><h1>404 Not Found</h1><p>The requested URL was not found on this server.</p></body></html>"
 #define P_ERROR_405 "<html><head><title>405 Method Not Allowed</title></head><body><h1>405 Method Not Allowed</h1><p>The requested method is not allowed for this URL.</p></body></html>"
+#define P_ERROR_408 "<html><head><title>408 Request Timeout</title></head><body><h1>408 Request Timeout</h1><p>Your browser failed to send a request in the time allowed by the server.</p></body></html>"
 #define P_ERROR_411 "<html><head><title>411 Length Required</title></head><body><h1>411 Length Required</h1><p>Content-Length header required for this request.</p></body></html>"
+#define P_ERROR_413 "<html><head><title>413 Payload Too Large</title></head><body><h1>413 Payload Too Large</h1><p>The request is larger than the server is willing or able to process.</p></body></html>"
 #define P_ERROR_500 "<html><head><title>500 Internal Server Error</title></head><body><h1>500 Internal Server Error</h1><p>The server encountered an internal error and was unable to complete your request.</p></body></html>"
 
 #define HEADER_OK "HTTP/1.1 200 OK\r\n"
@@ -35,7 +37,9 @@
 #define ERROR_403 "HTTP/1.1 403 Forbidden\r\n"
 #define ERROR_404 "HTTP/1.1 404 Not Found\r\n"
 #define ERROR_405 "HTTP/1.1 405 Method Not Allowed\r\n"
+#define ERROR_408 "HTTP/1.1 408 Request Timeout\r\n"
 #define ERROR_411 "HTTP/1.1 411 Length Required\r\n"
+#define ERROR_413 "HTTP/1.1 413 Payload too large\r\n"
 #define ERROR_500 "HTTP/1.1 500 Internal Server Error\r\n"
 
 #define CSS "text/css"
