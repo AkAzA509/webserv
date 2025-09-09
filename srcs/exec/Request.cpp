@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/04 13:53:23 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/08 16:08:26 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,8 @@
 #include "Logger.h"
 #include <cctype>
 #include <algorithm>
+
+Request::Request() : m_iserrorPage(false), m_error_page(0), m_env(NULL) {}
 
 std::ostream& operator<<(std::ostream& o, const BinaryInfo& info)
 {
@@ -33,7 +35,7 @@ Request::Request(Server& server, const std::string& request, char **env)
 bool iequals(const std::string& a, const std::string& b) {
 	if (a.length() != b.length())
 		return false;
-	
+
 	for (size_t i = 0; i < a.length(); ++i) {
 		if (std::tolower(a[i]) != std::tolower(b[i]))
 			return false;
@@ -97,7 +99,7 @@ void Request::parseBinaryInfos(const std::string& body) {
 
 		std::vector<std::string> headers = splitset(headers_block, "\r\n");
 		for (size_t i = 0; i < headers.size(); i++) {
-			if (iequals(headers[i].substr(0, 21), "Content-Disposition:"))
+			if (iequals(headers[i].substr(0, 20), "Content-Disposition:"))
 				parseContentDispo(headers[i], binInfo);
 		}
 

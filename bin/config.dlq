@@ -36,7 +36,7 @@ server {
 	server_name localhost;
 	host 127.0.0.1;
 	root ./file;
-	client_max_body_size 3000000;
+	client_max_body_size 300000000000;
 	index page/index.html;
 	error_page 404 error_pages/404.html;
 	error_page 405 error_pages/405.html;
@@ -50,18 +50,15 @@ server {
 		allow_methods GET HEAD POST;
 		autoindex off;
 	}
-	location /upload {
-		index page/cookie-test.html
-		allow_methods GET DELETE POST;
-		autoindex off;
-	}
 	location /put_file {
 		allow_methods DELETE PUT;
 		autoindex off;
 	}
 	location /post_file {
 		allow_methods DELETE GET POST;
+		root ./file;
 		autoindex off;
+		upload_path /post_file;
 	}
 	#location /cgi-bin {
 	#	root ./;

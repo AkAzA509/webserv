@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 12:33:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/09/04 16:09:29 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/08 15:18:58 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,7 @@ Response::Response(Request& req, Server& server) : m_server(&server), m_request(
 	buildResponse();
 }
 
-void Response::setDefaultResponse()
-{
+void Response::setDefaultResponse() {
 	m_firstline = HEADER_OK;
 }
 
@@ -37,8 +36,12 @@ std::pair<std::string, std::string> Response::getError(int page, const std::stri
 		return std::make_pair(ERROR_400, loadFile(buildPath(page_path)));
 	case 405:
 		return std::make_pair(ERROR_405, loadFile(buildPath(page_path)));
+	case 408:
+		return std::make_pair(ERROR_408, loadFile(buildPath(page_path)));
 	case 411:
 		return std::make_pair(ERROR_411, loadFile(buildPath(page_path)));
+	case 413:
+		return std::make_pair(ERROR_413, loadFile(buildPath(page_path)));
 	case 500:
 		return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
 	default:
@@ -60,21 +63,18 @@ std::string Response::joinPaths(const std::string& base, const std::string& rela
 
 std::string Response::buildPath(const std::string& page_path) const
 {
-	std::string root = m_server->getRoot(); // Use config root directly
+	std::string root = m_server->getRoot();
 	std::string req_path = page_path;
 
-	// Remove leading slashes from request path
 	while (!req_path.empty() && req_path[0] == '/')
 		req_path = req_path.substr(1);
 
-	// If request is empty, use index.html or configured index
 	if (req_path.empty()) {
 		std::vector<std::string> indexes = getLocationOrServerIndexes();
 		req_path = indexes.empty() ? "index.html" : indexes[0];
 	}
 
 	std::string full_path = joinPaths(root, req_path);
-	// Logger::log(YELLOW, "root: %s, req_path: %s, full_path: %s\n", root.c_str(), req_path.c_str(), full_path.c_str());
 	return full_path;
 }
 
@@ -107,7 +107,6 @@ std::string Response::getFullResponse() const
 
 	oss << "Content-Length: " << m_body.size() << "\r\n";
 
-	oss << "Server: Webserv/1.0\r\n";
 	oss << "Connection: close\r\n";
 
 	for (std::map<std::string, std::string>::const_iterator it = m_header.begin(); it != m_header.end(); ++it)
@@ -177,7 +176,9 @@ void Response::setErrorResponse(int errorCode)
 			case 403: m_firstline = ERROR_403; m_body = P_ERROR_403; break;
 			case 404: m_firstline = ERROR_404; m_body = P_ERROR_404; break;
 			case 405: m_firstline = ERROR_405; m_body = P_ERROR_405; break;
+			case 408: m_firstline = ERROR_408; m_body = P_ERROR_408; break;
 			case 411: m_firstline = ERROR_411; m_body = P_ERROR_411; break;
+			case 413: m_firstline = ERROR_413; m_body = P_ERROR_413; break;
 			case 500: m_firstline = ERROR_500; m_body = P_ERROR_500; break;
 			default: m_firstline = ERROR_500; m_body = P_ERROR_500; break;
 		}
@@ -188,15 +189,17 @@ void Response::setErrorResponse(int errorCode)
 void Response::handlePost()
 {
 	std::string root = m_request->getLocation().getRoot();
+	Logger::log(YELLOW, "root: %s\n", root.c_str());
 	std::string uploadPath = m_request->getLocation().getUploadPath();
+	Logger::log(YELLOW, "uploadPath: %s\n", uploadPath.c_str());
 	const std::vector<BinaryInfo>& binaries = m_request->getBinaryInfos();
 
 	if (!binaries.empty()) {
 		bool all_success = true;
 		for (size_t i = 0; i < binaries.size(); ++i) {
 			const BinaryInfo& bin = binaries[i];
+			Logger::log(RED, "filename: %s", bin.filename.c_str());
 			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + bin.filename);
-
 			std::ofstream outfile(filePath.c_str(), std::ios::binary);
 			if (!outfile) {
 				all_success = false;
@@ -209,10 +212,8 @@ void Response::handlePost()
 			outfile.close();
 			m_servedFilePath = filePath;
 		}
-		if (all_success) {
+		if (all_success)
 			m_firstline = HEADER_201;
-			m_body = "File(s) uploaded successfully.";
-		}
 	}
 	else if (!m_request->getRawBody().empty()) {
 		std::string filePath = normalizePath(root + "/" + uploadPath + "/post_body.txt");
@@ -315,7 +316,7 @@ void Response::buildResponse()
 	}
 	else {
 		if (!m_request->getLocation().isAllowedMethod(m_request->getMethod())) {
-			Logger::log(RED, "Method %s not allowed for path %s", m_request->getMethod().c_str(), m_request->getPath().c_str());
+			// Logger::log(RED, "Method %s not allowed for path %s", m_request->getMethod().c_str(), m_request->getPath().c_str());
 			setErrorResponse(405);
 		}
 		else if (m_request->getMethod().find("cgi-bin") != std::string::npos)

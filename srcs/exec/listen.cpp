@@ -3,6 +3,14 @@
 #include "Parser.h"
 #include "Logger.h"
 
+
+void Server::setErrorForced(int error_code, int client_fd) {
+	Request req;
+	Response resp(req, *this);
+	resp.setErrorResponse(error_code);
+	sendClient(resp, client_fd);
+}
+
 bool Server::requestComplete(std::string& request) {
 	size_t crlf_pos = request.find("\r\n\r\n");
 	if (crlf_pos == std::string::npos)
@@ -12,7 +20,6 @@ bool Server::requestComplete(std::string& request) {
 	std::transform(headers.begin(), headers.end(), headers.begin(), ::tolower);
 	
 	size_t content_len_pos = headers.find("content-length:");
-	Logger::log(WHITE, "line content len = %s", request.c_str());
 
 	if (content_len_pos == std::string::npos)
 		return true;
@@ -29,8 +36,6 @@ bool Server::requestComplete(std::string& request) {
 	try {
 		size_t expected_body_size = std::atoi(head_len.c_str());
 		size_t body_size = request.size() - (crlf_pos + 4);
-		Logger::log(YELLOW, "Expected body: %zu, received: %zu", expected_body_size, body_size);
-
 		return body_size >= expected_body_size;
 	} catch (const std::exception& e) {
 		Logger::log(RED, "error content-length : content_lenght invalide");
@@ -49,30 +54,24 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 	if (client.request_complete)
 		return true;
 
-	Logger::log(WHITE, "Client fd %d ready to read", client_fd);
 	ssize_t query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-	Logger::log(WHITE, "le client envoie: %zu, buffer send: %s", query, buffer);
 
 	if (query > 0) {
 		client.last_activity = time(NULL);
 		buffer[query] = '\0';
 		client.request_buffer.append(buffer, query);
-		Logger::log(YELLOW, "1");
 		if (requestComplete(client.request_buffer)) {
 			client.request_complete = true;
 			Logger::log(YELLOW, "Request received:\n%s\n=======================", client.request_buffer.c_str());
 			return true;
 		}
-		Logger::log(YELLOW, "2");
 
 		if (client.request_buffer.size() > m_Client_max_body_size) {
 			Logger::log(RED, "Request too large (max: %zu)", m_Client_max_body_size);
-			Response r;
-			sendClient(r, client_fd);
+			setErrorForced(413, client_fd);
 			cleanupClient(epfd, client_fd, ev);
 			return false;
 		}
-		Logger::log(YELLOW, "3");
 		return false;
 	}
 	else if (query == 0) {
@@ -92,17 +91,16 @@ void Server::sendClient(Response& response, int client_fd) {
 
 	Logger::log(CYAN, "Response: %s\n", resp_str.c_str());
 	ssize_t sent = 0;
+
 	if (m_forcedResponse.empty())
 		sent = send(client_fd, resp_str.c_str(), resp_str.size(), 0);
 	else
 		sent = send(client_fd, m_forcedResponse.c_str(), m_forcedResponse.size(), 0);
 
-	if (sent < 0) {
+	if (sent < 0)
 		Logger::log(RED, "send error: %s", strerror(errno));
-	} else {
-		Logger::log(CYAN, "Sent %zd bytes to client %d", 
-				sent, client_fd);
-	}
+	else
+		Logger::log(CYAN, "Sent %zd bytes to client %d", sent, client_fd);
 }
 
 void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd) {
@@ -126,12 +124,11 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 			}
 			
 			int flags = fcntl(client_fd, F_GETFL, 0);
-			if (flags != -1) {
+			if (flags != -1)
 				fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
-			}
 			
 			struct epoll_event client_ev;
-			client_ev.events = EPOLLIN | EPOLLET;
+			client_ev.events = EPOLLIN;
 			client_ev.data.fd = client_fd;
 			if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &client_ev) < 0) {
 				perror("epoll_ctl add client failed");
@@ -161,40 +158,37 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 			}
 		}
 	}
-	// checkTimeouts(epfd, ev, ready);
+	checkTimeouts(epfd);
 }
 
-// a corriger la ligne clients.erase(it); double free wtf
-// void Server::checkTimeouts(int epfd, struct epoll_event *ev, int ready) {
+void Server::checkTimeouts(int epfd) {
+	time_t now = time(NULL);
+	const int TIMEOUT_SECONDS = 5;
 
-// 	time_t now = time(NULL);
-// 	const int TIMEOUT_SECONDS = 20;
+	std::vector<int> clients_to_timeout;
 
-// 	for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ) {
-// 		if (!it->second.request_complete && now - it->second.last_activity > TIMEOUT_SECONDS) {
-// 			Logger::log(RED, "Timeout client %d", it->first);
-// 			Response resp;
-// 			m_forcedResponse = ERROR_408;
-// 			sendClient(resp, it->first);
+	for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ++it) {
+		int client_fd = it->first;
+		const ClientState& client = it->second;
+		
+		if (!client.request_complete && now - client.last_activity > TIMEOUT_SECONDS) {
+			Logger::log(RED, "Timeout detected for client %d (inactive for %ld seconds)", client_fd, now - client.last_activity);
+			clients_to_timeout.push_back(client_fd);
+		}
+	}
 
-// 			int ev_index = -1;
-// 			for (int j = 0; j < ready; ++j) {
-// 				if (ev[j].data.fd == it->first) {
-// 					ev_index = j;
-// 					break;
-// 				}
-// 			}
-// 			if (ev_index != -1)
-// 				cleanupClient(epfd, it->first, ev[ev_index]);
-// 			else
-// 				cleanupClient(epfd, it->first, ev[0]);
-
-// 			m_clients.erase(it);
-// 		}
-// 		else
-// 			++it;
-// 	}
-// }
+	for (size_t i = 0; i < clients_to_timeout.size(); ++i) {
+		int client_fd = clients_to_timeout[i];
+		
+		if (m_clients.find(client_fd) != m_clients.end()) {
+			Logger::log(RED, "Timing out client %d", client_fd);
+			setErrorForced(408, client_fd);
+			struct epoll_event dummy_ev;
+			dummy_ev.data.fd = client_fd;
+			cleanupClient(epfd, client_fd, dummy_ev);
+		}
+	}
+}
 
 void Server::waitConnection() {
 	int epfd = epoll_create(10);
@@ -228,13 +222,11 @@ void Server::waitConnection() {
 		if (ready > 0)
 			acceptClient(ready, m_socketFd, ev, epfd);
 	}
-	
-	for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ++it) {
+
+	for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ++it)
 		close(it->first);
-	}
-	for (size_t i = 0; i < m_socketFd.size(); ++i) {
+	for (size_t i = 0; i < m_socketFd.size(); ++i)
 		close(m_socketFd[i]);
-	}
 	close(epfd);
 }
 
@@ -274,6 +266,5 @@ void Server::setupSocket() {
 		}
 
 		m_socketFd.push_back(sock_fd);
-		Logger::log(CYAN, "Server listening on port %d", m_port[i]);
 	}
 }

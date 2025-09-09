@@ -105,7 +105,7 @@ struct ClientState {
 	std::string request_buffer;
 	bool request_complete;
 	time_t last_activity;
-	ClientState() : request_complete(false) {}
+	ClientState() : request_complete(false), last_activity(time(NULL)) {}
 };
 
 class Server
@@ -135,7 +135,8 @@ class Server
 		void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd);
 		void sendClient(Response& resp, int client_fd);
 		void cleanupClient(int epfd, int client_fd, struct epoll_event ev);
-		void checkTimeouts(int epfd, struct epoll_event *ev, int ready);
+		void checkTimeouts(int epfd);
+		void setErrorForced(int error_code, int client_fd);
 
 	public:
 		std::vector<size_t> getPorts() const;
