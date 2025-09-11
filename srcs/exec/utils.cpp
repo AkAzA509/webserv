@@ -7,6 +7,9 @@
 #include <sys/epoll.h>
 #include <stdexcept>
 #include <cstring> // for strerror
+#include <sstream>
+#include <iomanip>
+#include <cctype>
 
 void Server::cleanupClient(int epfd, int client_fd, struct epoll_event ev) {
 	// Safely remove from epoll
@@ -132,4 +135,22 @@ std::string normalizePath(const std::string& path)
     if (normalized.empty()) return isAbsolute ? "/" : ".";
 	Logger::log(YELLOW, "path normalizer: '%s'", normalized.c_str());
     return normalized;
+}
+
+// --- URL decode utility ---
+std::string urlDecode(const std::string& str) {
+    std::ostringstream decoded;
+    for (size_t i = 0; i < str.length(); ++i) {
+        if (str[i] == '%' && i + 2 < str.length() && std::isxdigit(str[i+1]) && std::isxdigit(str[i+2])) {
+            std::string hex = str.substr(i+1, 2);
+            char ch = static_cast<char>(std::strtol(hex.c_str(), NULL, 16));
+            decoded << ch;
+            i += 2;
+        } else if (str[i] == '+') {
+            decoded << ' ';
+        } else {
+            decoded << str[i];
+        }
+    }
+    return decoded.str();
 }

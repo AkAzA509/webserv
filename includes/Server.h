@@ -24,8 +24,6 @@
 
 extern volatile sig_atomic_t sig;
 
-
-
 #define MAX_EVENT 100
 
 struct Directive
@@ -183,6 +181,7 @@ void print_error(const std::string& str, int fd);
 std::string loadFile(const std::string& path);
 std::string getMimeType(const std::string& path);
 std::string normalizePath(const std::string& path);
+std::string urlDecode(const std::string& str);
 
 // Signaux
 

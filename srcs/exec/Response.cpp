@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 12:33:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/09/08 15:18:58 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/11 16:11:14 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,6 +102,8 @@ std::string Response::getFullResponse() const
 		contentType = getMimeType(m_servedFilePath);
 	else
 		contentType = "text/html";
+	if (m_firstline == HEADER_303)
+		oss << "Location: " << m_request->getLocation().getRedirectionPath() << "\r\n";
 
 	oss << "Content-Type: " << contentType << "\r\n";
 
@@ -189,17 +191,14 @@ void Response::setErrorResponse(int errorCode)
 void Response::handlePost()
 {
 	std::string root = m_request->getLocation().getRoot();
-	Logger::log(YELLOW, "root: %s\n", root.c_str());
 	std::string uploadPath = m_request->getLocation().getUploadPath();
-	Logger::log(YELLOW, "uploadPath: %s\n", uploadPath.c_str());
 	const std::vector<BinaryInfo>& binaries = m_request->getBinaryInfos();
 
 	if (!binaries.empty()) {
 		bool all_success = true;
 		for (size_t i = 0; i < binaries.size(); ++i) {
 			const BinaryInfo& bin = binaries[i];
-			Logger::log(RED, "filename: %s", bin.filename.c_str());
-			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + bin.filename);
+			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + "File" + "_" + bin.filename);
 			std::ofstream outfile(filePath.c_str(), std::ios::binary);
 			if (!outfile) {
 				all_success = false;
@@ -214,6 +213,8 @@ void Response::handlePost()
 		}
 		if (all_success)
 			m_firstline = HEADER_201;
+		if (m_request->getLocation().getRedirectionPath() != "")
+			m_firstline = HEADER_303;
 	}
 	else if (!m_request->getRawBody().empty()) {
 		std::string filePath = normalizePath(root + "/" + uploadPath + "/post_body.txt");
@@ -228,6 +229,8 @@ void Response::handlePost()
 		outfile.close();
 		m_servedFilePath = filePath;
 		m_firstline = HEADER_201;
+		if (m_request->getLocation().getRedirectionPath() != "")
+			m_firstline = HEADER_303;
 		m_body = "Body posted successfully.";
 	}
 	else {
@@ -238,21 +241,49 @@ void Response::handlePost()
 
 void Response::handleDelete()
 {
-	std::string filePath = buildPath(m_request->getPath());
-	std::vector<std::string> cgiPass = m_request->getLocation().getCgiPath();
-	if (cgiPass.empty()) {
+	const Location& loc = m_request->getLocation();
+	std::vector<std::string> indexes = loc.getIndexFiles();
+	if (indexes.empty()) {
 		setErrorResponse(500);
-		m_body = "CGI script for DELETE not configured.";
 		return;
 	}
-	std::string cgiScript = cgiPass[0];
-	std::string cgiOutput;
+	std::string scriptName = indexes[0];
+
+	size_t dot = scriptName.find_last_of('.');
+	std::string ext = (dot != std::string::npos) ? scriptName.substr(dot) : "";
+
+	std::vector<std::string> cgi_exts = loc.getCgiExt();
+	std::vector<std::string> cgi_passes = loc.getCgiPath();
+	std::string cgiPass;
+	for (size_t i = 0; i < cgi_exts.size() && i < cgi_passes.size(); ++i) {
+		if (cgi_exts[i] == ext) {
+			cgiPass = cgi_passes[i];
+			break;
+		}
+	}
+	if (cgiPass.empty() && cgi_passes.size() == 1)
+		cgiPass = cgi_passes[0];
+
+	if (cgiPass.empty()) {
+		setErrorResponse(500);
+		m_body = "CGI interpreter for DELETE not configured.";
+		return;
+	}
+
+	std::string scriptPath = normalizePath(loc.getRoot() + scriptName);
+
+	std::string filePath = buildPath(urlDecode(m_request->getPath()));
+	filePath.erase(0, 1);
 	std::vector<std::string> args;
+	args.push_back(scriptPath);
 	args.push_back(filePath);
+
 	std::vector<std::string> extraEnv;
 	extraEnv.push_back("REQUEST_METHOD=DELETE");
 	extraEnv.push_back("PATH_INFO=" + filePath);
-	bool success = m_request->doCGI(cgiScript, args, extraEnv, cgiOutput);
+
+	std::string cgiOutput;
+	bool success = m_request->doCGI(cgiPass, args, extraEnv, cgiOutput);
 	if (success && cgiOutput.find("success") != std::string::npos) {
 		m_firstline = HEADER_OK;
 		m_body = cgiOutput;
@@ -261,35 +292,30 @@ void Response::handleDelete()
 		m_body = cgiOutput.empty() ? "Error deleting file." : cgiOutput;
 	}
 }
-
 void Response::handlePut()
 {
+	std::string uploadPath = m_request->getLocation().getUploadPath();
 	std::string root = m_request->getLocation().getRoot();
-	std::string fullPath = normalizePath(root + m_request->getPath());
-
 	const std::vector<BinaryInfo>& binaries = m_request->getBinaryInfos();
 
 	if (!binaries.empty()) {
-		const BinaryInfo& bin = binaries[0];
-		std::ofstream outfile(fullPath.c_str(), std::ios::binary);
-		if (!outfile) {
-			setErrorResponse(500);
-			return;
+		bool all_success = true;
+		for (size_t i = 0; i < binaries.size(); ++i) {
+			const BinaryInfo& bin = binaries[i];
+			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + bin.filename);
+			std::ofstream outfile(filePath.c_str(), std::ios::binary);
+			if (!outfile) {
+				all_success = false;
+				setErrorResponse(500);
+				return;
+			}
+			outfile.write(bin.data.c_str(), bin.data.size());
+			outfile.close();
 		}
-		outfile.write(bin.data.c_str(), bin.data.size());
-		outfile.close();
-		m_firstline = HEADER_201;
-	}
-	else if (!m_request->getRawBody().empty()) {
-		const std::string& body = m_request->getRawBody();
-		std::ofstream outfile(fullPath.c_str(), std::ios::binary);
-		if (!outfile) {
-			setErrorResponse(500);
-			return;
-		}
-		outfile.write(body.c_str(), body.size());
-		outfile.close();
-		m_firstline = HEADER_201;
+		if (all_success)
+			m_firstline = HEADER_201;
+		if (m_request->getLocation().getRedirectionPath() != "")
+			m_firstline = HEADER_303;
 	}
 	else
 		setErrorResponse(400);

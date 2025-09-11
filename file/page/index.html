@@ -23,7 +23,7 @@
     <input type="file" name="file" required>
     <button type="submit">Envoyer POST</button>
   </form>
-  <button onclick="sendDelete('/post_file/')">DELETE sur /post_file/</button>
+  <button onclick="showDeleteList('/post_file/')">Supprimer un fichier dans /post_file</button>
 </section>
 
   <div class="container">
@@ -46,7 +46,7 @@
 	<h2>PUT</h2>
 	<input type="file" id="putFile" required>
 	<button onclick="sendMultipartPut()">Envoyer PUT</button>
-	<button onclick="sendDelete('put_file/')">DELETE sur /put_file/</button>
+	<button onclick="showDeleteList('/put_file/')">Supprimer un fichier dans /put_file</button>
 	</section>
 
 	<section>
@@ -62,14 +62,31 @@
   </section>
 
   <script>
-  function sendDelete(location) {
-    // Demande le nom du fichier à supprimer, ajoute un slash si besoin
-    let filename = prompt('Nom du fichier à supprimer dans ' + location + ' ?');
-    if (!filename) return;
-    // Nettoie les slashes pour éviter // dans l'URL
-    if (location[location.length-1] !== '/') location += '/';
-    if (filename[0] === '/') filename = filename.substr(1);
-    fetch(location + filename, { method: 'DELETE' })
+  async function showDeleteList(location) {
+	const res = await fetch(location);
+	if (!res.ok) {
+		const text = await res.text();
+		document.getElementById('result').textContent =
+		`Erreur ${res.status} ${res.statusText}\n\n${text}`;
+		return;
+	}
+    const html = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const links = Array.from(doc.querySelectorAll("a"))
+      .filter(a => a.getAttribute("href") && a.getAttribute("href") !== "../");
+
+    let listHtml = "<ul>";
+    for (const link of links) {
+      const filename = link.getAttribute("href");
+      listHtml += `<li>${filename} <button onclick="deleteFile('${location}${encodeURIComponent(filename)}')">Supprimer</button></li>`;
+    }
+    listHtml += "</ul>";
+    document.getElementById('result').innerHTML = listHtml;
+  }
+
+  function deleteFile(url) {
+    fetch(url, { method: 'DELETE' })
       .then(async res => {
         const text = await res.text();
         document.getElementById('result').textContent =

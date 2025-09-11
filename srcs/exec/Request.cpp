@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/08 16:08:26 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/11 15:44:53 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -259,87 +259,6 @@ std::vector<std::string> Request::convertEnv() {
 		env.push_back(m_env[i]);
 	return env;
 }
-
-// void Request::doCGI(size_t end_header, std::string& request) {
-// 	std::vector<std::string> env = convertEnv();
-
-// 	env.push_back("REQUEST_METHOD=" + m_method);
-// 	env.push_back("SERVER_PROTOCOL=HTTP/1.1");
-
-// 	std::string body = request.substr(end_header);
-
-// 	if (m_method == "GET") {
-// 		size_t query_pos = m_path.find('?');
-// 		std::string query = (query_pos != std::string::npos) ? m_path.substr(query_pos + 1) : "";
-// 		env.push_back("QUERY_STRING=" + query);
-// 	}
-// 	else if (m_method == "POST") {
-// 		std::stringstream ss;
-// 		ss << body.size();
-// 		std::string len = ss.str();
-// 		env.push_back("CONTENT_LENGTH=" + len);
-// 	}
-
-// 	std::vector<char *> envp;
-// 	for (size_t i = 0; i < env.size(); ++i)
-// 		envp.push_back(const_cast<char *>(env[i].c_str()));
-
-// 	envp.push_back(NULL);
-// 	m_path.erase(0, 1);
-// 	char *av[] = { const_cast<char *>(m_path.c_str()), NULL };
-// 	std::cout << "url = " << av[0] << std::endl;
-
-// 	int pipe_in[2];
-// 	int pipe_out[2];
-
-// 	if (pipe(pipe_out) == -1 || pipe(pipe_in) == -1) {
-// 		Logger::log(RED, "pipe failed");
-// 		return;
-// 	}
-
-// 	pid_t pid = fork();
-// 	if (pid < 0) {
-// 		Logger::log(RED, "fork failed");
-// 		return;
-// 	}
-// 	if (pid == 0) {
-// 		dup2(pipe_out[1], STDOUT_FILENO);
-// 		close(pipe_out[0]);
-
-// 		if (m_method == "POST")
-// 			dup2(pipe_in[0], STDIN_FILENO);
-// 		close(pipe_in[1]);
-
-// 		execve(av[0], av, envp.data());
-// 		exit(EXIT_FAILURE);
-// 	}
-// 	else {
-// 		close(pipe_out[1]);
-
-// 		if (m_method == "POST")
-// 			write(pipe_in[1], body.c_str(), body.size());
-// 		close(pipe_in[1]);
-// 		close(pipe_in[0]);
-
-// 		char buffer[1024];
-// 		ssize_t bytes;
-// 		std::string cgi_output;
-
-// 		while ((bytes = read(pipe_out[0], buffer, sizeof(buffer))) > 0)
-// 			cgi_output.append(buffer, bytes);
-
-// 		close(pipe_out[0]);
-
-// 		int status;
-// 		if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-// 			setError(500);
-// 			return;
-// 		}
-
-// 		Logger::log(WHITE, "CGI Output:\n%s\n", cgi_output.c_str());
-// 		m_cgiOutput = cgi_output;
-// 	}
-// }
 
 bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string>& args, const std::vector<std::string>& extraEnv, std::string& cgiOutput) {
 	int pipe_out[2];
