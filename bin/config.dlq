@@ -36,10 +36,16 @@ server {
 	server_name localhost;
 	host 127.0.0.1;
 	root ./file;
-	client_max_body_size 300000000000;
+	client_max_body_size 3000000000;
 	index page/index.html;
+	error_page 400 error_pages/400.html;
+	error_page 403 error_pages/403.html;
 	error_page 404 error_pages/404.html;
 	error_page 405 error_pages/405.html;
+	error_page 408 error_pages/408.html;
+	error_page 411 error_pages/411.html;
+	error_page 413 error_pages/413.html;
+	error_page 500 error_pages/500.html;
 
 	location / {
 		allow_methods GET HEAD POST;
@@ -72,9 +78,9 @@ server {
 	}
 	location /cgi-bin {
 		root ./file;
-		allow_methods DELETE POST;
-		index change_color.sh, delete.py;
-		cgi_pass /usr/bin/shell /usr/bin/python3;
-		cgi_ext .sh .py;
+		allow_methods POST;
+		index cgi-bin/change_color.sh;
+		cgi_pass /usr/bin/bash;
+		cgi_ext .sh;
 	}
 }

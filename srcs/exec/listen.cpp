@@ -3,7 +3,18 @@
 #include "Parser.h"
 #include "Logger.h"
 
+// Enleve le client de epoll et ferme le socket
+void Server::cleanupClient(int epfd, int client_fd, struct epoll_event ev) {
+	if (epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev) < 0)
+		Logger::log(RED, "epoll_ctl DEL failed for fd %d", client_fd);
+	
+	if (close(client_fd))
+		Logger::log(RED, "close failed for fd %d", client_fd);
 
+	m_clients.erase(client_fd);
+}
+
+// Set une reponse a envoyer sans requete valide pour bypass le parser etc
 void Server::setErrorForced(int error_code, int client_fd) {
 	Request req;
 	Response resp(req, *this);
@@ -11,6 +22,7 @@ void Server::setErrorForced(int error_code, int client_fd) {
 	sendClient(resp, client_fd);
 }
 
+// check si la requette est complete
 bool Server::requestComplete(std::string& request) {
 	size_t crlf_pos = request.find("\r\n\r\n");
 	if (crlf_pos == std::string::npos)
@@ -37,12 +49,16 @@ bool Server::requestComplete(std::string& request) {
 		size_t expected_body_size = std::atoi(head_len.c_str());
 		size_t body_size = request.size() - (crlf_pos + 4);
 		return body_size >= expected_body_size;
-	} catch (const std::exception& e) {
+	}
+	catch (const std::exception& e) {
 		Logger::log(RED, "error content-length : content_lenght invalide");
 		return false;
 	}
 }
 
+// Enregistre les donnees envoyer par le client sur sa socket a chaque
+// notification d'event epoll, ajoute ses requettes dans un struct qui contient
+// toute les infos de chaques clients
 bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 	char buffer[4096];
 
@@ -86,6 +102,7 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 	}
 }
 
+// envoie la reponse au client
 void Server::sendClient(Response& response, int client_fd) {
 	const std::string& resp_str = response.getFullResponse();
 
@@ -99,10 +116,9 @@ void Server::sendClient(Response& response, int client_fd) {
 
 	if (sent < 0)
 		Logger::log(RED, "send error: %s", strerror(errno));
-	else
-		Logger::log(CYAN, "Sent %zd bytes to client %d", sent, client_fd);
 }
 
+// Accepte les nouvelles connexions et gere les clients existants
 void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd) {
 	for (int i = 0; i < ready; i++) {
 		int fd = ev[i].data.fd;
@@ -144,7 +160,6 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 				if (!request.empty()) {
 					try {
 						Request req(*this, request, m_ep);
-						Logger::log(CYAN, "Request parsed for client %d", fd);
 						Response resp(req, *this);
 						sendClient(resp, fd);
 					} catch (const std::exception& e) {
@@ -171,10 +186,8 @@ void Server::checkTimeouts(int epfd) {
 		int client_fd = it->first;
 		const ClientState& client = it->second;
 		
-		if (!client.request_complete && now - client.last_activity > TIMEOUT_SECONDS) {
-			Logger::log(RED, "Timeout detected for client %d (inactive for %ld seconds)", client_fd, now - client.last_activity);
+		if (!client.request_complete && now - client.last_activity > TIMEOUT_SECONDS)
 			clients_to_timeout.push_back(client_fd);
-		}
 	}
 
 	for (size_t i = 0; i < clients_to_timeout.size(); ++i) {

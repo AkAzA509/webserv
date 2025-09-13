@@ -63,12 +63,6 @@ class Location
 		bool isAllowedMethod(const std::string& method) const;
 		std::string getPath() const { return m_path; }
 		std::string getUploadPath() const { return m_uploadPath; }
-		void setUploadPath(const std::string& path) {
-			m_uploadPath = path;
-			if (!m_uploadPath.empty() && m_uploadPath[m_uploadPath.length()-1] != '/') {
-				m_uploadPath += '/';
-			}
-		}
 		std::string getRedirectionPath() const { return m_redirection_path; }
 		std::vector<std::string> getIndexFiles() const { return m_indexFiles; }
 		std::string getRoot() const { return m_root; }
@@ -76,6 +70,20 @@ class Location
 		bool isAutoIndexOn() const { return m_autoIndex; }
 		std::vector<std::string> getCgiPath() const { return m_cgi_pass; }
 		std::vector<std::string> getCgiExt() const { return m_cgi_ext; }
+		void setRedirectionPath(const std::string& path) { m_redirection_path = path; }
+		void addIndexFile(const std::string& indexFile) { m_indexFiles.push_back(indexFile); }
+		void addAllowedMethod(const std::string& methodName) { m_allowed_methods.push_back(methodName); }
+		void setAutoIndexOn(bool on) { m_autoIndex = on; }
+		std::vector<std::string> getIndex() const { return m_indexFiles; }
+		bool getAutoindex() const { return m_autoIndex; }
+		void addCgiPath(const std::string& path) { m_cgi_pass.push_back(path); }
+		void addCgiExt(const std::string& ext) { m_cgi_ext.push_back(ext); }
+		void setUploadPath(const std::string& path) {
+			m_uploadPath = path;
+			if (!m_uploadPath.empty() && m_uploadPath[m_uploadPath.length()-1] != '/') {
+				m_uploadPath += '/';
+			}
+		}
 		void setPath(const std::string& path) {
 			m_path = path;
 
@@ -83,20 +91,12 @@ class Location
 				m_path += '/';
 			}
 		}
-		void setRedirectionPath(const std::string& path) { m_redirection_path = path; }
-		void addIndexFile(const std::string& indexFile) { m_indexFiles.push_back(indexFile); }
 		void setRoot(const std::string& root) {
 			m_root = root;
 			if (!m_root.empty() && m_root[m_root.length()-1] != '/') {
 				m_root += '/';
 			}
 		}
-		void addAllowedMethod(const std::string& methodName) { m_allowed_methods.push_back(methodName); }
-		void setAutoIndexOn(bool on) { m_autoIndex = on; }
-		std::vector<std::string> getIndex() const { return m_indexFiles; }
-		bool getAutoindex() const { return m_autoIndex; }
-		void addCgiPath(const std::string& path) { m_cgi_pass.push_back(path); }
-		void addCgiExt(const std::string& ext) { m_cgi_ext.push_back(ext); }
 };
 
 struct ClientState {
@@ -129,7 +129,6 @@ class Server
 		void waitConnection();
 		bool recvClient(int epfd, struct epoll_event ev, int client_fd);
 		bool requestComplete(std::string& request);
-		Response parseRequest(std::string& request);
 		void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd);
 		void sendClient(Response& resp, int client_fd);
 		void cleanupClient(int epfd, int client_fd, struct epoll_event ev);
@@ -179,12 +178,11 @@ std::ostream& operator<<(std::ostream& o, const Server& server);
 std::vector<std::string> splitRequest(const std::string& str);
 void print_error(const std::string& str, int fd);
 std::string loadFile(const std::string& path);
-std::string getMimeType(const std::string& path);
+std::string getFileType(const std::string& path);
 std::string normalizePath(const std::string& path);
 std::string urlDecode(const std::string& str);
+std::vector<std::string> prepareCgiEnv(const Request& req, const std::string& scriptName, const std::string& reqPath);
 
 // Signaux
 
 void sigint_handler(int);
-
-// Request

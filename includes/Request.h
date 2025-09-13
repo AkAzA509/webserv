@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/08 11:12:07 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/13 15:38:54 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,8 +27,7 @@ struct BinaryInfo
 	std::string data;
 
 	BinaryInfo() {}
-	BinaryInfo(const std::string& name, const std::string& file, const std::string& data)
-		: field_name(name), filename(file), data(data) {}
+	BinaryInfo(const std::string& name, const std::string& file, const std::string& data) : field_name(name), filename(file), data(data) {}
 };
 
 std::ostream& operator<<(std::ostream& o, const BinaryInfo& info);
@@ -64,7 +63,6 @@ private:
 	std::string m_autoIndexPage;
 	bool m_isAutoIndex;
 	std::string m_rawBody;
-	
 	void setError(int error_code);
 
 public:
@@ -74,14 +72,8 @@ public:
 	~Request() {};
 	Request& operator=(const Request& other);
 
-	void autoIndex();
-	std::vector<std::string> convertEnv();
 	
-	void parseBody(const std::string& request);
-	void parseContentDispo(const std::string& line, BinaryInfo& outBinInfo);
-	void parseHeader(const std::string& request, const Server& server);
-	void parseBinaryInfos(const std::string& body);
-	
+public:
 	const std::string& getMethod() const { return m_method; }
 	bool getIsAutoIndex() const { return m_isAutoIndex; }
 	const std::string& getCgiOutput() const { return m_cgiOutput; }
@@ -94,9 +86,17 @@ public:
 	int getErrorPage() const { return m_error_page; }
 	const Location& getLocation() const { return m_loc; }
 	const std::vector<BinaryInfo>& getBinaryInfos() const { return m_BinaryInfos; }
-	
 	std::string getHeader(const std::string& key) const;
 
-	friend std::ostream& operator<<(std::ostream& o, const Request& req);
+	void autoIndex();
+	std::vector<std::string> convertEnv();
+	bool parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::string& cgiOutput, pid_t pid);
+	void childProcess(int* pipe_out, int* pipe_in, bool hasBody, const std::string& scriptPath, const std::vector<std::string>& args, char** m_env, const std::vector<std::string>& extraEnv);
+	void parseBody(const std::string& request);
+	void parseContentDispo(const std::string& line, BinaryInfo& outBinInfo);
+	void parseHeader(const std::string& request, const Server& server);
+	void parseBinaryInfos(const std::string& body);
 	bool doCGI(const std::string& scriptPath, const std::vector<std::string>& args, const std::vector<std::string>& extraEnv, std::string& cgiOutput);
+	
+	// friend std::ostream& operator<<(std::ostream& o, const Request& req);
 };

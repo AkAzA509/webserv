@@ -1,3 +1,4 @@
+
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
@@ -6,7 +7,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 12:33:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/09/11 16:11:14 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/12 12:52:52 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,8 +16,7 @@
 
 Response::Response() : m_server(NULL), m_request(NULL), m_firstline(), m_header(), m_body(), m_servedFilePath() {}
 
-Response::Response(Request& req, Server& server) : m_server(&server), m_request(&req)
-{
+Response::Response(Request& req, Server& server) : m_server(&server), m_request(&req) {
 	buildResponse();
 }
 
@@ -24,35 +24,59 @@ void Response::setDefaultResponse() {
 	m_firstline = HEADER_OK;
 }
 
-std::pair<std::string, std::string> Response::getError(int page, const std::string& page_path) const
-{
+std::pair<std::string, std::string> Response::getError(int page, const std::string& page_path) const {
 	switch (page)
 	{
-	case 404:
-		return std::make_pair(ERROR_404, loadFile(buildPath(page_path)));
-	case 403:
-		return std::make_pair(ERROR_403, loadFile(buildPath(page_path)));
-	case 400:
-		return std::make_pair(ERROR_400, loadFile(buildPath(page_path)));
-	case 405:
-		return std::make_pair(ERROR_405, loadFile(buildPath(page_path)));
-	case 408:
-		return std::make_pair(ERROR_408, loadFile(buildPath(page_path)));
-	case 411:
-		return std::make_pair(ERROR_411, loadFile(buildPath(page_path)));
-	case 413:
-		return std::make_pair(ERROR_413, loadFile(buildPath(page_path)));
-	case 500:
-		return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
-	default:
-		return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
+		case 404:
+			return std::make_pair(ERROR_404, loadFile(buildPath(page_path)));
+		case 403:
+			return std::make_pair(ERROR_403, loadFile(buildPath(page_path)));
+		case 400:
+			return std::make_pair(ERROR_400, loadFile(buildPath(page_path)));
+		case 405:
+			return std::make_pair(ERROR_405, loadFile(buildPath(page_path)));
+		case 408:
+			return std::make_pair(ERROR_408, loadFile(buildPath(page_path)));
+		case 411:
+			return std::make_pair(ERROR_411, loadFile(buildPath(page_path)));
+		case 413:
+			return std::make_pair(ERROR_413, loadFile(buildPath(page_path)));
+		case 500:
+			return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
+		default:
+			return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
 	}
 }
 
-std::string Response::joinPaths(const std::string& base, const std::string& relative) const
-{
-	if (base.empty()) return relative;
-	if (relative.empty()) return base;
+
+// Sélectionne l'interpréteur CGI pour un script donné, gère l'erreur si non trouvé
+std::string Response::selectCgiInterpreter(const Location& loc, const std::string& scriptName) {
+	size_t dot = scriptName.find_last_of('.');
+	std::string ext = (dot != std::string::npos) ? scriptName.substr(dot) : "";
+	std::vector<std::string> cgi_exts = loc.getCgiExt();
+	std::vector<std::string> cgi_passes = loc.getCgiPath();
+	std::string cgiPass;
+
+	for (size_t i = 0; i < cgi_exts.size() && i < cgi_passes.size(); ++i) {
+		if (cgi_exts[i] == ext) {
+			cgiPass = cgi_passes[i];
+			break;
+		}
+	}
+	if (cgiPass.empty() && cgi_passes.size() == 1)
+		cgiPass = cgi_passes[0];
+	if (cgiPass.empty()) {
+		setErrorResponse(500);
+		m_body = "CGI interpreter not configured for the script";
+	}
+	return cgiPass;
+}
+
+std::string Response::joinPaths(const std::string& base, const std::string& relative) const {
+	if (base.empty())
+		return relative;
+	if (relative.empty())
+		return base;
 	if (base[base.size() - 1] == '/' && relative[0] == '/')
 		return base + relative.substr(1);
 	if (base[base.size() - 1] != '/' && relative[0] != '/')
@@ -61,8 +85,7 @@ std::string Response::joinPaths(const std::string& base, const std::string& rela
 }
 
 
-std::string Response::buildPath(const std::string& page_path) const
-{
+std::string Response::buildPath(const std::string& page_path) const {
 	std::string root = m_server->getRoot();
 	std::string req_path = page_path;
 
@@ -78,10 +101,10 @@ std::string Response::buildPath(const std::string& page_path) const
 	return full_path;
 }
 
-std::vector<std::string> Response::getLocationOrServerIndexes() const
-{
+std::vector<std::string> Response::getLocationOrServerIndexes() const {
 	const Location& loc = m_request->getLocation();
 	std::vector<std::string> locIndexes = loc.getIndexFiles();
+
 	if (!locIndexes.empty())
 		return locIndexes;
 
@@ -92,23 +115,20 @@ std::vector<std::string> Response::getLocationOrServerIndexes() const
 	return std::vector<std::string>(1, "index.html");
 }
 
-std::string Response::getFullResponse() const
-{
+std::string Response::getFullResponse() const {
 	std::ostringstream oss;
 	oss << m_firstline;
 
 	std::string contentType;
 	if (!m_servedFilePath.empty())
-		contentType = getMimeType(m_servedFilePath);
+		contentType = getFileType(m_servedFilePath);
 	else
 		contentType = "text/html";
 	if (m_firstline == HEADER_303)
 		oss << "Location: " << m_request->getLocation().getRedirectionPath() << "\r\n";
 
 	oss << "Content-Type: " << contentType << "\r\n";
-
 	oss << "Content-Length: " << m_body.size() << "\r\n";
-
 	oss << "Connection: close\r\n";
 
 	for (std::map<std::string, std::string>::const_iterator it = m_header.begin(); it != m_header.end(); ++it)
@@ -116,15 +136,11 @@ std::string Response::getFullResponse() const
 
 	oss << "\r\n";
 	oss << m_body;
-
 	return oss.str();
 }
 
-void Response::handleGet()
-{
-	// Logger::log(YELLOW, "path : %s\n", m_request->getPath().c_str());
+void Response::handleGet() {
 	std::string filePath = buildPath(m_request->getPath());
-	Logger::log(YELLOW, "path builder : %s\n", filePath.c_str());
 
 	struct stat st;
 	if (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
@@ -156,14 +172,14 @@ void Response::handleGet()
 		m_firstline = HEADER_OK;
 		m_body = body;
 		m_servedFilePath = filePath;
-	} else {
+	}
+	else {
 		setErrorResponse(404);
 		m_servedFilePath.clear();
 	}
 }
 
-void Response::setErrorResponse(int errorCode)
-{
+void Response::setErrorResponse(int errorCode) {
 	const std::map<int, std::string>& pages = m_server->getErrorPages();
 	std::map<int, std::string>::const_iterator it = pages.find(errorCode);
 
@@ -172,24 +188,51 @@ void Response::setErrorResponse(int errorCode)
 		m_firstline = page.first;
 		m_body = page.second;
 		m_servedFilePath = it->second;
-	} else {
+	}
+	else {
 		switch (errorCode) {
-			case 400: m_firstline = ERROR_400; m_body = P_ERROR_400; break;
-			case 403: m_firstline = ERROR_403; m_body = P_ERROR_403; break;
-			case 404: m_firstline = ERROR_404; m_body = P_ERROR_404; break;
-			case 405: m_firstline = ERROR_405; m_body = P_ERROR_405; break;
-			case 408: m_firstline = ERROR_408; m_body = P_ERROR_408; break;
-			case 411: m_firstline = ERROR_411; m_body = P_ERROR_411; break;
-			case 413: m_firstline = ERROR_413; m_body = P_ERROR_413; break;
-			case 500: m_firstline = ERROR_500; m_body = P_ERROR_500; break;
-			default: m_firstline = ERROR_500; m_body = P_ERROR_500; break;
+			case 400:
+				m_firstline = ERROR_400;
+				m_body = P_ERROR_400;
+				break;
+			case 403:
+				m_firstline = ERROR_403;
+				m_body = P_ERROR_403;
+				break;
+			case 404:
+				m_firstline = ERROR_404;
+				m_body = P_ERROR_404;
+				break;
+			case 405:
+				m_firstline = ERROR_405;
+				m_body = P_ERROR_405;
+				break;
+			case 408:
+				m_firstline = ERROR_408;
+				m_body = P_ERROR_408;
+				break;
+			case 411:
+				m_firstline = ERROR_411;
+				m_body = P_ERROR_411;
+				break;
+			case 413:
+				m_firstline = ERROR_413;
+				m_body = P_ERROR_413;
+				break;
+			case 500:
+				m_firstline = ERROR_500;
+				m_body = P_ERROR_500;
+				break;
+			default:
+				m_firstline = ERROR_500;
+				m_body = P_ERROR_500;
+				break;
 		}
 		m_servedFilePath.clear();
 	}
 }
 
-void Response::handlePost()
-{
+void Response::handlePost() {
 	std::string root = m_request->getLocation().getRoot();
 	std::string uploadPath = m_request->getLocation().getUploadPath();
 	const std::vector<BinaryInfo>& binaries = m_request->getBinaryInfos();
@@ -200,6 +243,7 @@ void Response::handlePost()
 			const BinaryInfo& bin = binaries[i];
 			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + "File" + "_" + bin.filename);
 			std::ofstream outfile(filePath.c_str(), std::ios::binary);
+
 			if (!outfile) {
 				all_success = false;
 				Logger::log(RED, "Failed to open file for writing: %s", filePath.c_str());
@@ -239,8 +283,7 @@ void Response::handlePost()
 	}
 }
 
-void Response::handleDelete()
-{
+void Response::handleDelete() {
 	const Location& loc = m_request->getLocation();
 	std::vector<std::string> indexes = loc.getIndexFiles();
 	if (indexes.empty()) {
@@ -249,51 +292,32 @@ void Response::handleDelete()
 	}
 	std::string scriptName = indexes[0];
 
-	size_t dot = scriptName.find_last_of('.');
-	std::string ext = (dot != std::string::npos) ? scriptName.substr(dot) : "";
-
-	std::vector<std::string> cgi_exts = loc.getCgiExt();
-	std::vector<std::string> cgi_passes = loc.getCgiPath();
-	std::string cgiPass;
-	for (size_t i = 0; i < cgi_exts.size() && i < cgi_passes.size(); ++i) {
-		if (cgi_exts[i] == ext) {
-			cgiPass = cgi_passes[i];
-			break;
-		}
-	}
-	if (cgiPass.empty() && cgi_passes.size() == 1)
-		cgiPass = cgi_passes[0];
-
-	if (cgiPass.empty()) {
-		setErrorResponse(500);
-		m_body = "CGI interpreter for DELETE not configured.";
+	std::string cgiPass = selectCgiInterpreter(loc, scriptName);
+	if (cgiPass.empty())
 		return;
-	}
 
 	std::string scriptPath = normalizePath(loc.getRoot() + scriptName);
-
 	std::string filePath = buildPath(urlDecode(m_request->getPath()));
 	filePath.erase(0, 1);
 	std::vector<std::string> args;
 	args.push_back(scriptPath);
 	args.push_back(filePath);
 
-	std::vector<std::string> extraEnv;
-	extraEnv.push_back("REQUEST_METHOD=DELETE");
-	extraEnv.push_back("PATH_INFO=" + filePath);
-
+	std::vector<std::string> extraEnv = prepareCgiEnv(*m_request, scriptName, filePath);
 	std::string cgiOutput;
+
 	bool success = m_request->doCGI(cgiPass, args, extraEnv, cgiOutput);
 	if (success && cgiOutput.find("success") != std::string::npos) {
 		m_firstline = HEADER_OK;
 		m_body = cgiOutput;
-	} else {
+	}
+	else {
 		setErrorResponse(500);
 		m_body = cgiOutput.empty() ? "Error deleting file." : cgiOutput;
 	}
 }
-void Response::handlePut()
-{
+
+void Response::handlePut() {
 	std::string uploadPath = m_request->getLocation().getUploadPath();
 	std::string root = m_request->getLocation().getRoot();
 	const std::vector<BinaryInfo>& binaries = m_request->getBinaryInfos();
@@ -304,6 +328,7 @@ void Response::handlePut()
 			const BinaryInfo& bin = binaries[i];
 			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + bin.filename);
 			std::ofstream outfile(filePath.c_str(), std::ios::binary);
+
 			if (!outfile) {
 				all_success = false;
 				setErrorResponse(500);
@@ -321,8 +346,46 @@ void Response::handlePut()
 		setErrorResponse(400);
 }
 
-void Response::buildResponse()
-{
+void Response::prepareCgi() {
+	const Location& loc = m_request->getLocation();
+	std::string reqPath = m_request->getPath();
+	std::string root = loc.getRoot();
+	std::string path = loc.getPath();
+
+	std::string scriptName;
+	size_t lastSlash = reqPath.find_last_of("/");
+	scriptName = (lastSlash != std::string::npos) ? reqPath.substr(lastSlash + 1) : reqPath;
+
+	if (scriptName.empty()) {
+		setErrorResponse(404);
+		m_body = "No script specified in URL.";
+		return;
+	}
+
+	std::string cgiPass = selectCgiInterpreter(loc, scriptName);
+	if (cgiPass.empty())
+		return;
+
+	std::string scriptPath = normalizePath(root + path + scriptName);
+	std::vector<std::string> args;
+	args.push_back(scriptPath);
+
+	std::vector<std::string> extraEnv = prepareCgiEnv(*m_request, scriptName, reqPath);
+
+	std::string cgiOutput;
+	bool success = m_request->doCGI(cgiPass, args, extraEnv, cgiOutput);
+
+	if (success) {
+		m_firstline = HEADER_OK;
+		m_body = cgiOutput;
+	}
+	else {
+		setErrorResponse(500);
+		m_body = cgiOutput.empty() ? "CGI execution failed." : cgiOutput;
+	}
+}
+
+void Response::buildResponse() {
 	std::string method = m_request->getMethod();
 	setDefaultResponse();
 
@@ -341,13 +404,10 @@ void Response::buildResponse()
 		}
 	}
 	else {
-		if (!m_request->getLocation().isAllowedMethod(m_request->getMethod())) {
-			// Logger::log(RED, "Method %s not allowed for path %s", m_request->getMethod().c_str(), m_request->getPath().c_str());
+		if (!m_request->getLocation().isAllowedMethod(m_request->getMethod()))
 			setErrorResponse(405);
-		}
-		else if (m_request->getMethod().find("cgi-bin") != std::string::npos)
-			// m_request->doCGI(a changer ca)
-			;
+		else if (m_request->getPath().find("cgi-bin") != std::string::npos)
+			prepareCgi();
 		else {
 			if (method == "GET")
 				handleGet();
@@ -361,5 +421,4 @@ void Response::buildResponse()
 				setErrorResponse(500);
 		}
 	}
-	// Logger::log(RED, "Body: %s\n", m_body.c_str());
 }

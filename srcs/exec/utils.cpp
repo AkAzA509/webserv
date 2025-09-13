@@ -2,39 +2,16 @@
 #include "Config.h"
 #include "Parser.h"
 #include "Logger.h"
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/epoll.h>
-#include <stdexcept>
-#include <cstring> // for strerror
-#include <sstream>
-#include <iomanip>
-#include <cctype>
-
-void Server::cleanupClient(int epfd, int client_fd, struct epoll_event ev) {
-	// Safely remove from epoll
-	if (epoll_ctl(epfd, EPOLL_CTL_DEL, client_fd, &ev) < 0) {
-		Logger::log(RED, "epoll_ctl DEL failed for fd %d: %s", 
-				client_fd, strerror(errno));
-	}
-	
-	if (close(client_fd)) {
-		Logger::log(RED, "close failed for fd %d: %s", 
-				client_fd, strerror(errno));
-	}
-	
-	// Remove from client map
-	m_clients.erase(client_fd);
-	Logger::log(YELLOW, "Cleaned up client fd %d", client_fd);
-}
-
+#include "Request.h"
 
 void print_error(const std::string& str, int fd) {
-	if (fd != -1) close(fd);
+	if (fd != -1)
+		close(fd);
 	Logger::log(RED, "Error: %s", str.c_str());
 	throw std::runtime_error(str);
 }
 
+// Ouvre le fichier et le charge en buffer pour le retourner
 std::string loadFile(const std::string& path) {
 	if (path.empty()) {
 		Logger::log(RED, "Empty file path");
@@ -42,15 +19,13 @@ std::string loadFile(const std::string& path) {
 	}
 
 	if (access(path.c_str(), F_OK | R_OK) < 0) {
-		Logger::log(RED, "File access failed for %s: %s", 
-				path.c_str(), strerror(errno));
+		Logger::log(RED, "File access failed for %s", path.c_str());
 		return "";
 	}
 
 	int fd = open(path.c_str(), O_RDONLY);
 	if (fd < 0) {
-		Logger::log(RED, "open failed for %s: %s", 
-				path.c_str(), strerror(errno));
+		Logger::log(RED, "open failed for %s", path.c_str());
 		return "";
 	}
 
@@ -60,97 +35,131 @@ std::string loadFile(const std::string& path) {
 
 	while ((bytesRead = read(fd, buffer, sizeof(buffer)))) {
 		if (bytesRead < 0) {
-			if (errno == EINTR) continue;
-			Logger::log(RED, "read failed for %s: %s", 
-					path.c_str(), strerror(errno));
+			if (errno == EINTR) 
+				continue;
+			Logger::log(RED, "read failed for %s", path.c_str());
 			close(fd);
 			return "";
 		}
 		content.append(buffer, bytesRead);
 	}
 
-	if (close(fd)) {
-		Logger::log(RED, "close failed for %s: %s", 
-				path.c_str(), strerror(errno));
-	}
+	if (close(fd))
+		Logger::log(RED, "close failed for %s", path.c_str());
 
 	return content;
 }
 
 bool Location::isAllowedMethod(const std::string& method) const {
-	for (std::vector<std::string>::const_iterator it = m_allowed_methods.begin(); it != m_allowed_methods.end(); ++it)
-	{
+	for (std::vector<std::string>::const_iterator it = m_allowed_methods.begin(); it != m_allowed_methods.end(); ++it){
 		if (*it == method)
 			return true;
 	}
 	return false;
 }
 
-std::string getMimeType(const std::string& path) {
+// Evalue le type de body renvoyer en response
+std::string getFileType(const std::string& path) {
 	size_t dot = path.rfind('.');
-	if (dot == std::string::npos) {
+	if (dot == std::string::npos)
 		return "application/octet-stream";
-	}
 
 	std::string ext = path.substr(dot + 1);
-	if (ext == "html" || ext == "htm") return "text/html";
-	if (ext == "css") return "text/css";
-	if (ext == "js") return "application/javascript";
-	if (ext == "jpg" || ext == "jpeg") return "image/jpeg";
-	if (ext == "png") return "image/png";
-	if (ext == "gif") return "image/gif";
-	if (ext == "txt") return "text/plain";
-	if (ext == "pdf") return "application/pdf";
-	if (ext == "json") return "application/json";
-	if (ext == "xml") return "application/xml";
-
+	if (ext == "html" || ext == "htm")
+		return "text/html";
+	else if (ext == "css")
+		return "text/css";
+	else if (ext == "js")
+		return "application/javascript";
+	else if (ext == "jpg" || ext == "jpeg")
+		return "image/jpeg";
+	else if (ext == "png")
+		return "image/png";
+	else if (ext == "gif")
+		return "image/gif";
+	else if (ext == "txt")
+		return "text/plain";
+	else if (ext == "pdf")
+		return "application/pdf";
+	else if (ext == "json")
+		return "application/json";
+	else if (ext == "xml")
+		return "application/xml";
 	return "application/octet-stream";
 }
-std::string normalizePath(const std::string& path)
-{
-    Logger::log(YELLOW, "path a normalizer: '%s'", path.c_str());
-    std::vector<std::string> stack;
-    bool isAbsolute = !path.empty() && path[0] == '/';
 
-    size_t i = 0;
-    while (i < path.size()) {
-        while (i < path.size() && path[i] == '/') ++i;
-        size_t start = i;
-        while (i < path.size() && path[i] != '/') ++i;
-        std::string token = path.substr(start, i - start);
-        if (token.empty() || token == ".") continue;
-        if (token == "..") {
-            if (!stack.empty()) stack.pop_back();
-        } else {
-            stack.push_back(token);
-        }
-    }
+// Parcour les path recus et les nettoies
+std::string normalizePath(const std::string& path) {
+	std::vector<std::string> stack;
+	bool isAbsolute = !path.empty() && path[0] == '/';
 
-    std::string normalized;
-    if (isAbsolute) normalized += "/";
-    for (size_t j = 0; j < stack.size(); ++j) {
-        normalized += stack[j];
-        if (j + 1 < stack.size()) normalized += "/";
-    }
-    if (normalized.empty()) return isAbsolute ? "/" : ".";
-	Logger::log(YELLOW, "path normalizer: '%s'", normalized.c_str());
-    return normalized;
+	size_t i = 0;
+	while (i < path.size()) {
+		while (i < path.size() && path[i] == '/')
+			++i;
+		size_t start = i;
+		while (i < path.size() && path[i] != '/')
+			++i;
+		std::string token = path.substr(start, i - start);
+		if (token.empty() || token == ".")
+			continue;
+		if (token == "..") {
+			if (!stack.empty())
+				stack.pop_back();
+		}
+		else
+			stack.push_back(token);
+	}
+
+	std::string normalized;
+	if (isAbsolute) normalized += "/";
+	for (size_t j = 0; j < stack.size(); ++j) {
+		normalized += stack[j];
+		if (j + 1 < stack.size())
+			normalized += "/";
+	}
+	if (normalized.empty())
+		return isAbsolute ? "/" : ".";
+	return normalized;
 }
 
-// --- URL decode utility ---
+// Decode les url recu
 std::string urlDecode(const std::string& str) {
-    std::ostringstream decoded;
-    for (size_t i = 0; i < str.length(); ++i) {
-        if (str[i] == '%' && i + 2 < str.length() && std::isxdigit(str[i+1]) && std::isxdigit(str[i+2])) {
-            std::string hex = str.substr(i+1, 2);
-            char ch = static_cast<char>(std::strtol(hex.c_str(), NULL, 16));
-            decoded << ch;
-            i += 2;
-        } else if (str[i] == '+') {
-            decoded << ' ';
-        } else {
-            decoded << str[i];
-        }
-    }
-    return decoded.str();
+	std::ostringstream decoded;
+	for (size_t i = 0; i < str.length(); ++i) {
+		if (str[i] == '%' && i + 2 < str.length() && std::isxdigit(str[i + 1]) && std::isxdigit(str[i + 2])) {
+			std::string hex = str.substr(i + 1, 2);
+			char ch = static_cast<char>(std::strtol(hex.c_str(), NULL, 16));
+			decoded << ch;
+			i += 2;
+		}
+		else if (str[i] == '+')
+			decoded << ' ';
+		else
+			decoded << str[i];
+	}
+	return decoded.str();
+}
+
+// Remplis l'environnement pour exec les cgi
+std::vector<std::string> prepareCgiEnv(const Request& req, const std::string& scriptName, const std::string& reqPath) {
+	std::vector<std::string> env;
+	env.push_back("REQUEST_METHOD=" + req.getMethod());
+	env.push_back("PATH_INFO=" + reqPath);
+	env.push_back("SCRIPT_NAME=" + scriptName);
+
+	if (req.getMethod() == "GET") {
+		std::string::size_type qpos = reqPath.find('?');
+		std::string query = (qpos != std::string::npos) ? reqPath.substr(qpos + 1) : "";
+		env.push_back("QUERY_STRING=" + query);
+	}
+	if (req.getMethod() == "POST") {
+		std::string cl = req.getHeader("Content-Length");
+		if (!cl.empty())
+			env.push_back("CONTENT_LENGTH=" + cl);
+		std::string ct = req.getHeader("Content-Type");
+		if (!ct.empty())
+			env.push_back("CONTENT_TYPE=" + ct);
+	}
+	return env;
 }
