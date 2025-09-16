@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/13 15:38:21 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/13 16:40:30 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -302,8 +302,8 @@ void Request::childProcess(int* pipe_out, int* pipe_in, bool hasBody, const std:
 
 	for (size_t i = 0; i < args.size(); ++i)
 		av[i + 1] = const_cast<char *>(args[i].c_str());
-
 	av[argc - 1] = NULL;
+
 	std::vector<std::string> envVec;
 
 	for (size_t i = 0; m_env && m_env[i]; ++i)

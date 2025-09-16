@@ -12,6 +12,7 @@
 #include <sys/epoll.h>
 #include <netinet/in.h>
 #include <numeric>
+#include <sys/time.h>
 #include <cstdio>
 #include <string.h>
 #include <unistd.h>
@@ -19,8 +20,11 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <signal.h>
+#include <ctime>
 #include <set>
+#include <cstring>
 #include <sstream>
+#include <netdb.h>
 
 extern volatile sig_atomic_t sig;
 
@@ -99,11 +103,12 @@ class Location
 		}
 };
 
+unsigned long getCurrentTimeMs();
 struct ClientState {
 	std::string request_buffer;
 	bool request_complete;
-	time_t last_activity;
-	ClientState() : request_complete(false), last_activity(time(NULL)) {}
+	unsigned long last_activity;
+	ClientState() : request_complete(false), last_activity(getCurrentTimeMs()) {}
 };
 
 class Server
@@ -122,6 +127,7 @@ class Server
 		std::vector<Location> m_locations;
 		std::map<int, ClientState> m_clients;
 		std::string m_forcedResponse;
+		unsigned long m_timeout;
 	public:
 		Server();
 		~Server();
@@ -168,8 +174,9 @@ class Server
 		inline void setClientMaxBodySize(int size) { m_Client_max_body_size = size; }
 		void setClientMaxBodySize(size_t size);
 		void addEnv(char **ep);
-};
-
+		void setTimeout(const std::string& time);
+	};
+	
 std::ostream& operator<<(std::ostream& o, const Location& loc);
 std::ostream& operator<<(std::ostream& o, const Server& server);
 

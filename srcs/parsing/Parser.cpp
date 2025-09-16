@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/09/04 13:54:03 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/16 16:28:59 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -373,11 +373,11 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 			else if (dir.name == "return")
 				location.setRedirectionPath(dir.args[0]);
 			else if (dir.name == "upload_path") {
-                if (dir.args.size() != 1) {
-                    throw std::runtime_error("upload_path requires exactly one argument");
-                }
-                location.setUploadPath(dir.args[0]);
-            }
+				if (dir.args.size() != 1) {
+					throw std::runtime_error("upload_path requires exactly one argument");
+				}
+				location.setUploadPath(dir.args[0]);
+			}
 		}
 	}
 	return location;
@@ -514,11 +514,11 @@ Server Parser::parseServer(const std::string& data, char **ep) const
 	server.addEnv(ep);
 
 	std::string server_root = "";
-    std::vector<std::string> server_index_files;
-    std::map<int, std::string> server_error_pages;
-    size_t server_client_max_body_size = 0;
-    std::string server_host_ip = "";
-    std::string server_server_name = "";
+	std::vector<std::string> server_index_files;
+	std::map<int, std::string> server_error_pages;
+	size_t server_client_max_body_size = 0;
+	std::string server_host_ip = "";
+	std::string server_server_name = "";
 
 	for (size_t i = 0; i < lines.size(); i++)
 	{
@@ -540,52 +540,57 @@ Server Parser::parseServer(const std::string& data, char **ep) const
 		}
 
 		if (brace_level == 1) {
-            Directive dir = parseDirective(line, i);
-            if (dir.name == "listen") {
-                server.addPort(parsePort(dir));
-            }
-            else if (dir.name == "server_name") {
-                server_server_name = parseServerName(dir);
-                server.setServerName(server_server_name);
-            }
-            else if (dir.name == "host") {
-                server_host_ip = parseHost(dir);
-                server.setHostIp(server_host_ip);
-            }
-            else if (dir.name == "root") {
-                server_root = parseRoot(dir);
-                server.setRoot(server_root);
-                // Logger::log(RED, "Parsed Root: %s\n", server.getRoot().c_str());
-            }
-            else if (dir.name == "index") {
-                server_index_files.clear();
-                for (std::vector<std::string>::iterator it = dir.args.begin(); it != dir.args.end(); ++it) {
-                    server_index_files.push_back(*it);
-                    server.addIndexFile(*it);
-                }
-            }
-            else if (dir.name == "error_page") {
-                std::pair<int, std::string> result = parseErrorPage(dir);
-                server_error_pages[result.first] = result.second;
-                server.addErrorPage(result.first, result.second);
-            }
-            else if (dir.name == "client_max_body_size") {
-                server_client_max_body_size = parseClientBodySize(dir);
-                server.setClientMaxBodySize(server_client_max_body_size);
-            }
-            else if (dir.name == "upload_path") {
-                if (dir.args.size() != 1) {
-                    throw std::runtime_error("upload_path requires exactly one argument");
-                }
-                server.setUploadPath(dir.args[0]);
-            }
-        }
+			Directive dir = parseDirective(line, i);
+			if (dir.name == "listen") {
+				server.addPort(parsePort(dir));
+			}
+			else if (dir.name == "server_name") {
+				server_server_name = parseServerName(dir);
+				server.setServerName(server_server_name);
+			}
+			else if (dir.name == "host") {
+				server_host_ip = parseHost(dir);
+				server.setHostIp(server_host_ip);
+			}
+			else if (dir.name == "root") {
+				server_root = parseRoot(dir);
+				server.setRoot(server_root);
+				// Logger::log(RED, "Parsed Root: %s\n", server.getRoot().c_str());
+			}
+			else if (dir.name == "index") {
+				server_index_files.clear();
+				for (std::vector<std::string>::iterator it = dir.args.begin(); it != dir.args.end(); ++it) {
+					server_index_files.push_back(*it);
+					server.addIndexFile(*it);
+				}
+			}
+			else if (dir.name == "error_page") {
+				std::pair<int, std::string> result = parseErrorPage(dir);
+				server_error_pages[result.first] = result.second;
+				server.addErrorPage(result.first, result.second);
+			}
+			else if (dir.name == "client_max_body_size") {
+				server_client_max_body_size = parseClientBodySize(dir);
+				server.setClientMaxBodySize(server_client_max_body_size);
+			}
+			else if (dir.name == "upload_path") {
+				if (dir.args.size() != 1) {
+					throw std::runtime_error("upload_path requires exactly one argument");
+				}
+				server.setUploadPath(dir.args[0]);
+			}
+			else if (dir.name == "timeout_time") {
+				if (dir.args.size() != 1)
+					throw std::runtime_error("timeout_time requires exactly one argument");
+				server.setTimeout(dir.args[0]);
+			}
+		}
 
-        if (in_server_block && brace_level == 0) {
-            break;
-        }
-    }
-    return server;
+		if (in_server_block && brace_level == 0) {
+			break;
+		}
+	}
+	return server;
 }
 
 void Parser::makeServers(const std::string& fileData, char **ep)

@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/09/13 16:07:45 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/16 16:37:53 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 #include <limits>
 #include "Logger.h"
 
-Server::Server() : m_Client_max_body_size(std::numeric_limits<size_t>::infinity()) {}
+Server::Server() : m_Client_max_body_size(std::numeric_limits<size_t>::infinity()), m_timeout(5000) {}
 
 Server::~Server() {}
 
@@ -45,6 +45,15 @@ void Server::setServerName(const std::string& name) { m_serverName = name; }
 void Server::setHostIp(const std::string& ip)
 {
 	m_hostIp = ip;
+}
+
+void Server::setTimeout(const std::string& time)
+{
+	std::stringstream ss(time);
+
+	ss >> m_timeout;
+
+	Logger::log(LIGHTMAGENTA, "Timeout after set: %lu\n", m_timeout);
 }
 
 void Server::setRoot(const std::string& root) { m_root = root; }

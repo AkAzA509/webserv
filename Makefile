@@ -1,6 +1,6 @@
 ### COMPILATION OPTIONS ###
 CXX       = c++
-CXXFLAGS  = -Wall -Wextra -Werror -std=c++98 -g3 #-fsanitize=address,leak  
+CXXFLAGS  = -Wall -Wextra -Werror -std=c++98 -g3 -fsanitize=address,leak  
 CXXFLAGSDEV  = -Wall -Wextra -Werror -std=c++98 -fsanitize=address,leak -g3
 LDFLAGS   = -Iincludes
 

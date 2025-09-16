@@ -176,23 +176,31 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 	checkTimeouts(epfd);
 }
 
-void Server::checkTimeouts(int epfd) {
-	time_t now = time(NULL);
-	const int TIMEOUT_SECONDS = 5;
+#include <iomanip>
 
+unsigned long getCurrentTimeMs() {
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec * 1000L + tv.tv_usec / 1000L; 
+}
+
+void Server::checkTimeouts(int epfd) {
+	unsigned long now_ms = getCurrentTimeMs();
 	std::vector<int> clients_to_timeout;
+
+	std::cout << m_timeout << std::endl;
 
 	for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ++it) {
 		int client_fd = it->first;
 		const ClientState& client = it->second;
-		
-		if (!client.request_complete && now - client.last_activity > TIMEOUT_SECONDS)
+
+		if (!client.request_complete && now_ms - client.last_activity > m_timeout) {
 			clients_to_timeout.push_back(client_fd);
+		}
 	}
 
 	for (size_t i = 0; i < clients_to_timeout.size(); ++i) {
 		int client_fd = clients_to_timeout[i];
-		
 		if (m_clients.find(client_fd) != m_clients.end()) {
 			Logger::log(RED, "Timing out client %d", client_fd);
 			setErrorForced(408, client_fd);
@@ -247,37 +255,59 @@ void Server::setupSocket() {
 	int opt = 1;
 
 	for (size_t i = 0; i < m_port.size() && !sig; ++i) {
-		int sock_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+		addrinfo hints, *res;
+
+		std::memset(&hints, 0, sizeof(hints));
+		hints.ai_family = AF_INET;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_flags = AI_PASSIVE;
+
+		std::stringstream ss;
+
+		ss << m_port[i];
+
+		int status = getaddrinfo(m_hostIp.c_str(), ss.str().c_str(), &hints, &res);
+
+		if (status != 0)
+		{
+			std::cerr << "getaddrinfo error: " << gai_strerror(status) << std::endl;
+			continue;
+		}
+
+		int sock_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (sock_fd < 0) {
 			print_error("socket creation failed", -1);
+			freeaddrinfo(res);
 			continue;
 		}
 
 		if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
 			print_error("setsockopt failed", sock_fd);
 			close(sock_fd);
+			freeaddrinfo(res);
 			continue;
 		}
-
-		struct sockaddr_in addr;
-		memset(&addr, 0, sizeof(addr));
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(m_port[i]);
-		addr.sin_addr.s_addr = INADDR_ANY;
-
-		if (bind(sock_fd, (struct sockaddr*)&addr, sizeof(addr))) {
+		
+		if (bind(sock_fd, res->ai_addr, res->ai_addrlen) == -1) {
 			perror("bind failed");
 			print_error("bind failed", sock_fd);
 			close(sock_fd);
+			freeaddrinfo(res);
 			continue;
 		}
+		
 
 		if (listen(sock_fd, SOMAXCONN)) {
 			print_error("listen failed", sock_fd);
 			close(sock_fd);
+			freeaddrinfo(res);
 			continue;
 		}
 
+		Logger::log(CYAN, "Listening to ip: %s:%s\n", m_hostIp.c_str(), ss.str().c_str());
+
+		freeaddrinfo(res);
 		m_socketFd.push_back(sock_fd);
 	}
 }

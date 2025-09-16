@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:24:48 by macorso           #+#    #+#             */
-/*   Updated: 2025/09/09 13:03:04 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/16 16:18:44 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <cstdio>
+#include <ctime>
 #include <cstdarg>
 
 #define RESET          "\x1B[0m"
