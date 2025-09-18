@@ -146,6 +146,7 @@ void Response::handleGet() {
 	if (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
 		if (m_request->getIsAutoIndex()) {
 			m_firstline = HEADER_OK;
+			m_request->autoIndex();
 			m_body = m_request->getAutoIndex();
 			m_servedFilePath.clear();
 			return;
@@ -241,7 +242,9 @@ void Response::handlePost() {
 		bool all_success = true;
 		for (size_t i = 0; i < binaries.size(); ++i) {
 			const BinaryInfo& bin = binaries[i];
-			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + "File" + "_" + bin.filename);
+			std::stringstream ss;
+			ss << getCurrentTimeMs();
+			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + "File" + "-" + ss.str() + "_" + bin.filename);
 			std::ofstream outfile(filePath.c_str(), std::ios::binary);
 
 			if (!outfile) {

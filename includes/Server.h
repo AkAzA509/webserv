@@ -104,6 +104,7 @@ class Location
 };
 
 unsigned long getCurrentTimeMs();
+
 struct ClientState {
 	std::string request_buffer;
 	bool request_complete;

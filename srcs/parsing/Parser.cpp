@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/09/16 16:28:59 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/18 15:05:07 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -458,6 +458,23 @@ std::string Parser::parseHost(const Directive& dir) const
 	return dir.args[0];
 }
 
+bool Parser::parseTimeout(const std::string& arg) const {
+	if (arg.empty() || arg.find_first_not_of("0123456789") != std::string::npos)
+		return false;
+
+	errno = 0;
+	char* end = NULL;
+	unsigned long long num = std::strtoull(arg.c_str(), &end, 10);
+
+	if (num < 200)
+		return false;
+
+	if (errno == ERANGE || end == arg.c_str() || *end != '\0' || num > static_cast<unsigned long long>(SIZE_MAX))
+		return false;
+
+	return true;
+}
+
 std::string Parser::parseRoot(const Directive& dir) const
 {
 	if (dir.args.size() != 1)
@@ -580,8 +597,8 @@ Server Parser::parseServer(const std::string& data, char **ep) const
 				server.setUploadPath(dir.args[0]);
 			}
 			else if (dir.name == "timeout_time") {
-				if (dir.args.size() != 1)
-					throw std::runtime_error("timeout_time requires exactly one argument");
+				if (!parseTimeout(dir.args[0]))
+					throw std::runtime_error("timeout_time parameters must be a positive integer above 200 ms");
 				server.setTimeout(dir.args[0]);
 			}
 		}

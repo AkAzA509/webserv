@@ -31,6 +31,7 @@ class Parser
 		std::string parseHost(const Directive& dir) const;
 		std::string parseRoot(const Directive& dir) const;
 		size_t parseClientBodySize(const Directive& dir) const;
+		bool parseTimeout(const std::string& arg) const ;
 		void makeServers(const std::string& fileData, char **ep);
 		void (*getCorrespondingMethod(const std::string& str) const)(Request&, Response&);
 	public:

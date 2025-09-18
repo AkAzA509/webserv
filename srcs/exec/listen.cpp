@@ -70,12 +70,17 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 	if (client.request_complete)
 		return true;
 
+	Logger::log(CYAN, "Before");
 	ssize_t query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+	Logger::log(CYAN, "After");
+
 
 	if (query > 0) {
-		client.last_activity = time(NULL);
+		client.last_activity = getCurrentTimeMs();
 		buffer[query] = '\0';
 		client.request_buffer.append(buffer, query);
+		Logger::log(YELLOW, "Received %zd bytes from client %d", query, client_fd);
+		Logger::log(YELLOW, "Request received:\n%s\n=======================", client.request_buffer.c_str());
 		if (requestComplete(client.request_buffer)) {
 			client.request_complete = true;
 			Logger::log(YELLOW, "Request received:\n%s\n=======================", client.request_buffer.c_str());
@@ -106,7 +111,6 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 void Server::sendClient(Response& response, int client_fd) {
 	const std::string& resp_str = response.getFullResponse();
 
-	Logger::log(CYAN, "Response: %s\n", resp_str.c_str());
 	ssize_t sent = 0;
 
 	if (m_forcedResponse.empty())
@@ -116,6 +120,7 @@ void Server::sendClient(Response& response, int client_fd) {
 
 	if (sent < 0)
 		Logger::log(RED, "send error: %s", strerror(errno));
+	m_clients[client_fd].last_activity = getCurrentTimeMs();
 }
 
 // Accepte les nouvelles connexions et gere les clients existants
@@ -176,24 +181,15 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 	checkTimeouts(epfd);
 }
 
-#include <iomanip>
-
-unsigned long getCurrentTimeMs() {
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return tv.tv_sec * 1000L + tv.tv_usec / 1000L; 
-}
-
 void Server::checkTimeouts(int epfd) {
 	unsigned long now_ms = getCurrentTimeMs();
 	std::vector<int> clients_to_timeout;
-
-	std::cout << m_timeout << std::endl;
 
 	for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ++it) {
 		int client_fd = it->first;
 		const ClientState& client = it->second;
 
+		Logger::log(RED, "Checking client %d: last activity %lu ms ago", client_fd, now_ms - client.last_activity);
 		if (!client.request_complete && now_ms - client.last_activity > m_timeout) {
 			clients_to_timeout.push_back(client_fd);
 		}
@@ -269,8 +265,7 @@ void Server::setupSocket() {
 
 		int status = getaddrinfo(m_hostIp.c_str(), ss.str().c_str(), &hints, &res);
 
-		if (status != 0)
-		{
+		if (status != 0) {
 			std::cerr << "getaddrinfo error: " << gai_strerror(status) << std::endl;
 			continue;
 		}
@@ -296,7 +291,6 @@ void Server::setupSocket() {
 			freeaddrinfo(res);
 			continue;
 		}
-		
 
 		if (listen(sock_fd, SOMAXCONN)) {
 			print_error("listen failed", sock_fd);
@@ -304,8 +298,6 @@ void Server::setupSocket() {
 			freeaddrinfo(res);
 			continue;
 		}
-
-		Logger::log(CYAN, "Listening to ip: %s:%s\n", m_hostIp.c_str(), ss.str().c_str());
 
 		freeaddrinfo(res);
 		m_socketFd.push_back(sock_fd);

@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/13 16:40:30 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/18 15:09:44 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -203,10 +203,8 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 	m_loc = *best_match;
 	m_isAutoIndex = false;
 
-	if (m_loc.isAutoIndexOn()) {
+	if (m_loc.isAutoIndexOn())
 		m_isAutoIndex = true;
-		autoIndex();
-	}
 
 	for (size_t i = 1; i < headers.size(); i++) {
 		size_t colon = headers[i].find(':');
