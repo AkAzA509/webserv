@@ -137,10 +137,10 @@ class Server
 		bool recvClient(int epfd, struct epoll_event ev, int client_fd);
 		bool requestComplete(std::string& request);
 		void acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd);
-		void sendClient(Response& resp, int client_fd);
+		void sendClient(Response& response, int client_fd, int epfd, struct epoll_event ev);
 		void cleanupClient(int epfd, int client_fd, struct epoll_event ev);
 		void checkTimeouts(int epfd);
-		void setErrorForced(int error_code, int client_fd);
+		void setErrorForced(int error_code, int client_fd, int epfd, struct epoll_event ev);
 
 	public:
 		std::vector<size_t> getPorts() const;

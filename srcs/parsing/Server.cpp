@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/09/16 16:37:53 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/19 10:49:07 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,10 +50,7 @@ void Server::setHostIp(const std::string& ip)
 void Server::setTimeout(const std::string& time)
 {
 	std::stringstream ss(time);
-
 	ss >> m_timeout;
-
-	Logger::log(LIGHTMAGENTA, "Timeout after set: %lu\n", m_timeout);
 }
 
 void Server::setRoot(const std::string& root) { m_root = root; }

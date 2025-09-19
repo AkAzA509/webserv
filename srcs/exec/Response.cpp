@@ -52,7 +52,13 @@ std::pair<std::string, std::string> Response::getError(int page, const std::stri
 // Sélectionne l'interpréteur CGI pour un script donné, gère l'erreur si non trouvé
 std::string Response::selectCgiInterpreter(const Location& loc, const std::string& scriptName) {
 	size_t dot = scriptName.find_last_of('.');
-	std::string ext = (dot != std::string::npos) ? scriptName.substr(dot) : "";
+	std::string ext;
+	if (dot != std::string::npos)
+		ext = scriptName.substr(dot);
+	else {
+		Logger::log(RED, "Cgi script not have an extention");
+		return "";
+	}
 	std::vector<std::string> cgi_exts = loc.getCgiExt();
 	std::vector<std::string> cgi_passes = loc.getCgiPath();
 	std::string cgiPass;
@@ -63,8 +69,11 @@ std::string Response::selectCgiInterpreter(const Location& loc, const std::strin
 			break;
 		}
 	}
-	if (cgiPass.empty() && cgi_passes.size() == 1)
-		cgiPass = cgi_passes[0];
+	if (cgiPass.empty() && cgi_passes.size() == 1) {
+		// cgiPass = cgi_passes[0];
+		Logger::log(RED, "No match exention pass for cgi script");
+		return "";
+	}
 	if (cgiPass.empty()) {
 		setErrorResponse(500);
 		m_body = "CGI interpreter not configured for the script";
@@ -153,7 +162,8 @@ void Response::handleGet() {
 		}
 		std::vector<std::string> indexes = getLocationOrServerIndexes();
 		for (size_t i = 0; i < indexes.size(); ++i) {
-			std::string indexFile = joinPaths(filePath, indexes[i]);
+			Logger::log(WHITE, "Filepath = %s, index = %s", filePath.c_str(), indexes[i].c_str());
+			std::string indexFile = joinPaths(m_request->getLocation().getRoot(), indexes[i]);
 			std::string body = loadFile(indexFile);
 			if (!body.empty()) {
 				m_firstline = HEADER_OK;
@@ -256,6 +266,7 @@ void Response::handlePost() {
 			}
 			outfile.write(bin.data.c_str(), bin.data.size());
 			outfile.close();
+			Logger::log(WHITE, "File upload success");
 			m_servedFilePath = filePath;
 		}
 		if (all_success)
@@ -279,10 +290,12 @@ void Response::handlePost() {
 		if (m_request->getLocation().getRedirectionPath() != "")
 			m_firstline = HEADER_303;
 		m_body = "Body posted successfully.";
+		Logger::log(WHITE, "Raw file upload success");
 	}
 	else {
 		setErrorResponse(400);
 		m_servedFilePath.clear();
+		Logger::log(RED, "Raw file upload failed");
 	}
 }
 
@@ -290,6 +303,7 @@ void Response::handleDelete() {
 	const Location& loc = m_request->getLocation();
 	std::vector<std::string> indexes = loc.getIndexFiles();
 	if (indexes.empty()) {
+		Logger::log(RED, "No default index script for delete");
 		setErrorResponse(500);
 		return;
 	}
@@ -313,10 +327,12 @@ void Response::handleDelete() {
 	if (success && cgiOutput.find("success") != std::string::npos) {
 		m_firstline = HEADER_OK;
 		m_body = cgiOutput;
+		Logger::log(WHITE, "File Delete success");
 	}
 	else {
 		setErrorResponse(500);
 		m_body = cgiOutput.empty() ? "Error deleting file." : cgiOutput;
+		Logger::log(RED, "File Delete Failed");
 	}
 }
 
@@ -334,11 +350,13 @@ void Response::handlePut() {
 
 			if (!outfile) {
 				all_success = false;
+				Logger::log(RED, "Put file upload failed");
 				setErrorResponse(500);
 				return;
 			}
 			outfile.write(bin.data.c_str(), bin.data.size());
 			outfile.close();
+			Logger::log(WHITE, "Put file upload success");
 		}
 		if (all_success)
 			m_firstline = HEADER_201;
@@ -361,13 +379,15 @@ void Response::prepareCgi() {
 
 	if (scriptName.empty()) {
 		setErrorResponse(404);
-		m_body = "No script specified in URL.";
+		Logger::log(RED, "No script specified in URL");
 		return;
 	}
 
 	std::string cgiPass = selectCgiInterpreter(loc, scriptName);
-	if (cgiPass.empty())
+	if (cgiPass.empty()) {
+		setErrorResponse(404);
 		return;
+	}
 
 	std::string scriptPath = normalizePath(root + path + scriptName);
 	std::vector<std::string> args;
@@ -381,10 +401,11 @@ void Response::prepareCgi() {
 	if (success) {
 		m_firstline = HEADER_OK;
 		m_body = cgiOutput;
+		Logger::log(WHITE, "CGI execution success");
 	}
 	else {
+		m_body = cgiOutput.empty() ? "CGI execution failed" : cgiOutput;
 		setErrorResponse(500);
-		m_body = cgiOutput.empty() ? "CGI execution failed." : cgiOutput;
 	}
 }
 
@@ -409,7 +430,7 @@ void Response::buildResponse() {
 	else {
 		if (!m_request->getLocation().isAllowedMethod(m_request->getMethod()))
 			setErrorResponse(405);
-		else if (m_request->getPath().find("cgi-bin") != std::string::npos)
+		else if (m_request->getPath().find("cgi-bin") != std::string::npos && m_request->getMethod() != "GET")
 			prepareCgi();
 		else {
 			if (method == "GET")

@@ -27,7 +27,7 @@ server {
 	location /put_file {
 		allow_methods DELETE GET PUT;
 		root ./file;
-		autoindex on;
+		autoindex off;
 		upload_path /put_file;
 		index cgi-bin/delete.py;
 		cgi_pass /usr/bin/python3;
@@ -36,16 +36,17 @@ server {
 	location /post_file {
 		allow_methods DELETE GET POST;
 		root ./file;
-		autoindex on;
+		autoindex off;
 		upload_path /post_file;
 		index cgi-bin/delete.py;
 		cgi_pass /usr/bin/python3;
 		cgi_ext .py;
-		return /;
+		return /cgi-bin/;
 	}
 	location /cgi-bin {
+		autoindex off;
 		root ./file;
-		allow_methods POST;
+		allow_methods GET POST;
 		index cgi-bin/change_color.sh;
 		cgi_pass /usr/bin/bash;
 		cgi_ext .sh;

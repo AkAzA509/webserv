@@ -15,11 +15,11 @@ void Server::cleanupClient(int epfd, int client_fd, struct epoll_event ev) {
 }
 
 // Set une reponse a envoyer sans requete valide pour bypass le parser etc
-void Server::setErrorForced(int error_code, int client_fd) {
+void Server::setErrorForced(int error_code, int client_fd, int epfd, struct epoll_event ev) {
 	Request req;
 	Response resp(req, *this);
 	resp.setErrorResponse(error_code);
-	sendClient(resp, client_fd);
+	sendClient(resp, client_fd, epfd, ev);
 }
 
 // check si la requette est complete
@@ -70,17 +70,13 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 	if (client.request_complete)
 		return true;
 
-	Logger::log(CYAN, "Before");
 	ssize_t query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
-	Logger::log(CYAN, "After");
 
 
 	if (query > 0) {
 		client.last_activity = getCurrentTimeMs();
 		buffer[query] = '\0';
 		client.request_buffer.append(buffer, query);
-		Logger::log(YELLOW, "Received %zd bytes from client %d", query, client_fd);
-		Logger::log(YELLOW, "Request received:\n%s\n=======================", client.request_buffer.c_str());
 		if (requestComplete(client.request_buffer)) {
 			client.request_complete = true;
 			Logger::log(YELLOW, "Request received:\n%s\n=======================", client.request_buffer.c_str());
@@ -89,7 +85,7 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 
 		if (client.request_buffer.size() > m_Client_max_body_size) {
 			Logger::log(RED, "Request too large (max: %zu)", m_Client_max_body_size);
-			setErrorForced(413, client_fd);
+			setErrorForced(413, client_fd, epfd, ev);
 			cleanupClient(epfd, client_fd, ev);
 			return false;
 		}
@@ -108,18 +104,21 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 }
 
 // envoie la reponse au client
-void Server::sendClient(Response& response, int client_fd) {
+void Server::sendClient(Response& response, int client_fd, int epfd, struct epoll_event ev) {
 	const std::string& resp_str = response.getFullResponse();
 
 	ssize_t sent = 0;
 
+	Logger::log(WHITE, "Response : %s", resp_str.c_str());
 	if (m_forcedResponse.empty())
 		sent = send(client_fd, resp_str.c_str(), resp_str.size(), 0);
 	else
 		sent = send(client_fd, m_forcedResponse.c_str(), m_forcedResponse.size(), 0);
 
-	if (sent < 0)
+	if (sent < 0) {
 		Logger::log(RED, "send error: %s", strerror(errno));
+		cleanupClient(epfd, client_fd, ev);
+	}
 	m_clients[client_fd].last_activity = getCurrentTimeMs();
 }
 
@@ -166,12 +165,12 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 					try {
 						Request req(*this, request, m_ep);
 						Response resp(req, *this);
-						sendClient(resp, fd);
+						sendClient(resp, fd, epfd, ev[i]);
 					} catch (const std::exception& e) {
 						Logger::log(RED, "Error processing request: %s", e.what());
 						Response resp;
 						resp.setErrorResponse(500);
-						sendClient(resp, fd);
+						sendClient(resp, fd, epfd, ev[i]);
 					}
 				}
 				cleanupClient(epfd, fd, ev[i]);
@@ -189,7 +188,6 @@ void Server::checkTimeouts(int epfd) {
 		int client_fd = it->first;
 		const ClientState& client = it->second;
 
-		Logger::log(RED, "Checking client %d: last activity %lu ms ago", client_fd, now_ms - client.last_activity);
 		if (!client.request_complete && now_ms - client.last_activity > m_timeout) {
 			clients_to_timeout.push_back(client_fd);
 		}
@@ -199,9 +197,9 @@ void Server::checkTimeouts(int epfd) {
 		int client_fd = clients_to_timeout[i];
 		if (m_clients.find(client_fd) != m_clients.end()) {
 			Logger::log(RED, "Timing out client %d", client_fd);
-			setErrorForced(408, client_fd);
 			struct epoll_event dummy_ev;
 			dummy_ev.data.fd = client_fd;
+			setErrorForced(408, client_fd, epfd, dummy_ev);
 			cleanupClient(epfd, client_fd, dummy_ev);
 		}
 	}
