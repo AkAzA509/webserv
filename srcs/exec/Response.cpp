@@ -147,7 +147,6 @@ std::string Response::getFullResponse() const {
 	oss << m_body;
 	return oss.str();
 }
-
 void Response::handleGet() {
 	std::string filePath = buildPath(m_request->getPath());
 
@@ -162,15 +161,14 @@ void Response::handleGet() {
 		}
 		std::vector<std::string> indexes = getLocationOrServerIndexes();
 		for (size_t i = 0; i < indexes.size(); ++i) {
-			Logger::log(WHITE, "Filepath = %s, index = %s", filePath.c_str(), indexes[i].c_str());
 			std::string indexFile = joinPaths(m_request->getLocation().getRoot(), indexes[i]);
-			std::string body = loadFile(indexFile);
-			if (!body.empty()) {
-				m_firstline = HEADER_OK;
-				m_body = body;
-				m_servedFilePath = indexFile;
-				return;
-			}
+			std::string body;
+
+			m_firstline = HEADER_OK;
+			m_body = loadFile(indexFile);
+			m_servedFilePath = indexFile;
+			m_servedFilePath.clear();
+			return;
 		}
 		setErrorResponse(404);
 		m_servedFilePath.clear();

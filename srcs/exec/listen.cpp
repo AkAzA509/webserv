@@ -79,7 +79,7 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 		client.request_buffer.append(buffer, query);
 		if (requestComplete(client.request_buffer)) {
 			client.request_complete = true;
-			Logger::log(YELLOW, "Request received:\n%s\n=======================", client.request_buffer.c_str());
+			// Logger::log(YELLOW, "Request received:\n%s\n=======================", client.request_buffer.c_str());
 			return true;
 		}
 
@@ -109,7 +109,7 @@ void Server::sendClient(Response& response, int client_fd, int epfd, struct epol
 
 	ssize_t sent = 0;
 
-	Logger::log(WHITE, "Response : %s", resp_str.c_str());
+	// Logger::log(WHITE, "Response : %s", resp_str.c_str());
 	if (m_forcedResponse.empty())
 		sent = send(client_fd, resp_str.c_str(), resp_str.size(), 0);
 	else
