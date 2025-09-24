@@ -79,6 +79,10 @@ std::string getFileType(const std::string& path) {
 		return "image/gif";
 	else if (ext == "txt")
 		return "text/plain";
+	else if (ext == "py")
+		return "text/plain";
+	else if (ext == "sh")
+		return "text/plain";
 	else if (ext == "pdf")
 		return "application/pdf";
 	else if (ext == "json")
@@ -112,7 +116,8 @@ std::string normalizePath(const std::string& path) {
 	}
 
 	std::string normalized;
-	if (isAbsolute) normalized += "/";
+	if (isAbsolute)
+		normalized += "/";
 	for (size_t j = 0; j < stack.size(); ++j) {
 		normalized += stack[j];
 		if (j + 1 < stack.size())

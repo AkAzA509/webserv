@@ -147,45 +147,72 @@ std::string Response::getFullResponse() const {
 	oss << m_body;
 	return oss.str();
 }
+
 void Response::handleGet() {
-	std::string filePath = buildPath(m_request->getPath());
+	const Location& location = m_request->getLocation();
+	std::string filePath = urlDecode(buildPath(m_request->getPath()));
 
 	struct stat st;
-	if (stat(filePath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
-		if (m_request->getIsAutoIndex()) {
-			m_firstline = HEADER_OK;
-			m_request->autoIndex();
-			m_body = m_request->getAutoIndex();
+	if (stat(filePath.c_str(), &st) == 0) {
+		if (S_ISDIR(st.st_mode)) {
+			if (m_request->getIsAutoIndex()) {
+				m_firstline = HEADER_OK;
+				m_request->autoIndex();
+				m_body = m_request->getAutoIndex();
+				m_servedFilePath.clear();
+				return ;
+			}
+			else {
+				std::vector<std::string> indexes = getLocationOrServerIndexes();
+				bool indexFound = false;
+				for (size_t i = 0; i < indexes.size(); ++i) {
+					std::string indexFile = joinPaths(location.getRoot(), indexes[i]);
+					struct stat indexSt;
+					if (stat(indexFile.c_str(), &indexSt) == 0 && S_ISREG(indexSt.st_mode)) {
+						std::string body = loadFile(indexFile);
+						if (!body.empty()) {
+							m_firstline = HEADER_OK;
+							m_body = body;
+							m_servedFilePath = indexFile;
+							indexFound = true;
+							break;
+						}
+					}
+				}
+				if (!indexFound) {
+					setErrorResponse(403);
+					m_servedFilePath.clear();
+					return;
+				}
+			}
+		}
+		else if (S_ISREG(st.st_mode)) {
+			Logger::log(WHITE, "It's a regular file, serve it");
+			std::string body = loadFile(filePath);
+			if (!body.empty()) {
+				m_firstline = HEADER_OK;
+				m_body = body;
+				m_servedFilePath = filePath;
+			}
+			else {
+				setErrorResponse(500);
+				m_servedFilePath.clear();
+				return;
+			}
+		}
+		else {
+			setErrorResponse(404);
 			m_servedFilePath.clear();
 			return;
 		}
-		std::vector<std::string> indexes = getLocationOrServerIndexes();
-		for (size_t i = 0; i < indexes.size(); ++i) {
-			std::string indexFile = joinPaths(m_request->getLocation().getRoot(), indexes[i]);
-			std::string body;
-
-			m_firstline = HEADER_OK;
-			m_body = loadFile(indexFile);
-			m_servedFilePath = indexFile;
-			m_servedFilePath.clear();
-			return;
-		}
-		setErrorResponse(404);
-		m_servedFilePath.clear();
-		return;
-	}
-
-	std::string body = loadFile(filePath);
-
-	if (!body.empty()) {
-		m_firstline = HEADER_OK;
-		m_body = body;
-		m_servedFilePath = filePath;
 	}
 	else {
 		setErrorResponse(404);
 		m_servedFilePath.clear();
+		return;
 	}
+	if (!location.getRedirectionPath().empty())
+		m_firstline = HEADER_303;
 }
 
 void Response::setErrorResponse(int errorCode) {
