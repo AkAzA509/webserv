@@ -79,7 +79,6 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 		client.request_buffer.append(buffer, query);
 		if (requestComplete(client.request_buffer)) {
 			client.request_complete = true;
-			Logger::log(YELLOW, "Request received:\n%s\n=======================", client.request_buffer.c_str());
 			return true;
 		}
 
@@ -92,7 +91,6 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 		return false;
 	}
 	else if (query == 0) {
-		Logger::log(YELLOW, "Client %d disconnected", client_fd);
 		cleanupClient(epfd, client_fd, ev);
 		return false;
 	}
@@ -109,11 +107,10 @@ void Server::sendClient(Response& response, int client_fd, int epfd, struct epol
 
 	ssize_t sent = 0;
 
-	Logger::log(WHITE, "Response : %s", resp_str.c_str());
 	if (m_forcedResponse.empty())
-		sent = send(client_fd, resp_str.c_str(), resp_str.size(), 0);
+		sent = send(client_fd, resp_str.c_str(), resp_str.size(), MSG_NOSIGNAL);
 	else
-		sent = send(client_fd, m_forcedResponse.c_str(), m_forcedResponse.size(), 0);
+		sent = send(client_fd, m_forcedResponse.c_str(), m_forcedResponse.size(), MSG_NOSIGNAL);
 
 	if (sent < 0) {
 		Logger::log(RED, "send error: %s", strerror(errno));
@@ -156,7 +153,6 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 				continue;
 			}
 			m_clients[client_fd] = ClientState();
-			Logger::log(CYAN, "New client connected: %d", client_fd);
 		}
 		else {
 			if (recvClient(epfd, ev[i], fd)) {
@@ -196,7 +192,6 @@ void Server::checkTimeouts(int epfd) {
 	for (size_t i = 0; i < clients_to_timeout.size(); ++i) {
 		int client_fd = clients_to_timeout[i];
 		if (m_clients.find(client_fd) != m_clients.end()) {
-			Logger::log(RED, "Timing out client %d", client_fd);
 			struct epoll_event dummy_ev;
 			dummy_ev.data.fd = client_fd;
 			setErrorForced(408, client_fd, epfd, dummy_ev);
@@ -224,6 +219,9 @@ void Server::waitConnection() {
 	}
 
 	signal(SIGINT, sigint_handler);
+	signal(SIGTERM, sigterm_handler);
+	signal(SIGPIPE, sigpipe_handler);
+	signal(SIGCHLD, sigchld_handler);
 	while(sig == 0) {
 		struct epoll_event ev[MAX_EVENT];
 		int ready = epoll_wait(epfd, ev, MAX_EVENT, 1000);

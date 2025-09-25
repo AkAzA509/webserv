@@ -25,38 +25,38 @@ void Response::setDefaultResponse() {
 }
 
 std::pair<std::string, std::string> Response::getError(int page, const std::string& page_path) const {
+	std::string error_file_path = joinPaths(m_server->getRoot(), page_path);
+	
 	switch (page)
 	{
 		case 404:
-			return std::make_pair(ERROR_404, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_404, loadFile(error_file_path));
 		case 403:
-			return std::make_pair(ERROR_403, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_403, loadFile(error_file_path));
 		case 400:
-			return std::make_pair(ERROR_400, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_400, loadFile(error_file_path));
 		case 405:
-			return std::make_pair(ERROR_405, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_405, loadFile(error_file_path));
 		case 408:
-			return std::make_pair(ERROR_408, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_408, loadFile(error_file_path));
 		case 411:
-			return std::make_pair(ERROR_411, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_411, loadFile(error_file_path));
 		case 413:
-			return std::make_pair(ERROR_413, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_413, loadFile(error_file_path));
 		case 500:
-			return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_500, loadFile(error_file_path));
 		default:
-			return std::make_pair(ERROR_500, loadFile(buildPath(page_path)));
+			return std::make_pair(ERROR_500, loadFile(error_file_path));
 	}
 }
 
 
-// Sélectionne l'interpréteur CGI pour un script donné, gère l'erreur si non trouvé
 std::string Response::selectCgiInterpreter(const Location& loc, const std::string& scriptName) {
 	size_t dot = scriptName.find_last_of('.');
 	std::string ext;
 	if (dot != std::string::npos)
 		ext = scriptName.substr(dot);
 	else {
-		Logger::log(RED, "Cgi script not have an extention");
 		return "";
 	}
 	std::vector<std::string> cgi_exts = loc.getCgiExt();
@@ -70,8 +70,6 @@ std::string Response::selectCgiInterpreter(const Location& loc, const std::strin
 		}
 	}
 	if (cgiPass.empty() && cgi_passes.size() == 1) {
-		// cgiPass = cgi_passes[0];
-		Logger::log(RED, "No match exention pass for cgi script");
 		return "";
 	}
 	if (cgiPass.empty()) {
@@ -95,19 +93,94 @@ std::string Response::joinPaths(const std::string& base, const std::string& rela
 
 
 std::string Response::buildPath(const std::string& page_path) const {
-	std::string root = m_server->getRoot();
+	const Location& location = m_request->getLocation();
+	std::string location_path = location.getPath();
+	std::string root = location.getRoot().empty() ? m_server->getRoot() : location.getRoot();
 	std::string req_path = page_path;
+	
+	if (!location_path.empty() && location_path != "/") {
+		std::string loc_for_match = location_path;
+		if (loc_for_match.size() > 1 && loc_for_match[loc_for_match.size() - 1] == '/')
+			loc_for_match = loc_for_match.substr(0, loc_for_match.size() - 1);
+			
+		if (req_path.compare(0, loc_for_match.size(), loc_for_match) == 0) {
+			req_path = req_path.substr(loc_for_match.size());
+		}
+	}
 
 	while (!req_path.empty() && req_path[0] == '/')
 		req_path = req_path.substr(1);
-
+	
+	bool endsWithSlash = (!req_path.empty() && req_path[req_path.size() - 1] == '/');
+	if (endsWithSlash) {
+		req_path = req_path.substr(0, req_path.size() - 1);
+	}
+	
 	if (req_path.empty()) {
-		std::vector<std::string> indexes = getLocationOrServerIndexes();
-		req_path = indexes.empty() ? "index.html" : indexes[0];
+		std::vector<std::string> locIndexes = location.getIndexFiles();
+		if (!locIndexes.empty()) {
+			req_path = locIndexes[0];
+		} else {
+			std::string uploadPath = location.getUploadPath();
+			while (!uploadPath.empty() && uploadPath[0] == '/')
+				uploadPath = uploadPath.substr(1);
+			req_path = uploadPath.empty() ? "." : uploadPath;
+		}
+	} else {
+		std::string uploadPath = location.getUploadPath();
+		if (!uploadPath.empty() && req_path.find("cgi-bin/") != 0) {
+			while (!uploadPath.empty() && uploadPath[0] == '/')
+				uploadPath = uploadPath.substr(1);
+			if (!uploadPath.empty()) {
+				req_path = joinPaths(uploadPath, req_path);
+			}
+		}
 	}
 
-	std::string full_path = joinPaths(root, req_path);
-	return full_path;
+	return joinPaths(root, req_path);
+}
+
+std::string Response::buildDirPath(const std::string& page_path) const {
+	const Location& location = m_request->getLocation();
+	std::string location_path = location.getPath();
+	std::string root = location.getRoot().empty() ? m_server->getRoot() : location.getRoot();
+	std::string req_path = page_path;
+	
+	if (!location_path.empty() && location_path != "/") {
+		std::string loc_for_match = location_path;
+		if (loc_for_match.size() > 1 && loc_for_match[loc_for_match.size() - 1] == '/')
+			loc_for_match = loc_for_match.substr(0, loc_for_match.size() - 1);
+			
+		if (req_path.compare(0, loc_for_match.size(), loc_for_match) == 0) {
+			req_path = req_path.substr(loc_for_match.size());
+		}
+	}
+
+	while (!req_path.empty() && req_path[0] == '/')
+		req_path = req_path.substr(1);
+	
+	bool endsWithSlash = (!req_path.empty() && req_path[req_path.size() - 1] == '/');
+	if (endsWithSlash) {
+		req_path = req_path.substr(0, req_path.size() - 1);
+	}
+	
+	if (req_path.empty()) {
+		std::string uploadPath = location.getUploadPath();
+		while (!uploadPath.empty() && uploadPath[0] == '/')
+			uploadPath = uploadPath.substr(1);
+		req_path = uploadPath.empty() ? "." : uploadPath;
+	} else {
+		std::string uploadPath = location.getUploadPath();
+		if (!uploadPath.empty() && req_path.find("cgi-bin/") != 0) {
+			while (!uploadPath.empty() && uploadPath[0] == '/')
+				uploadPath = uploadPath.substr(1);
+			if (!uploadPath.empty()) {
+				req_path = joinPaths(uploadPath, req_path);
+			}
+		}
+	}
+
+	return joinPaths(root, req_path);
 }
 
 std::vector<std::string> Response::getLocationOrServerIndexes() const {
@@ -125,69 +198,93 @@ std::vector<std::string> Response::getLocationOrServerIndexes() const {
 }
 
 std::string Response::getFullResponse() const {
-	std::ostringstream oss;
-	oss << m_firstline;
+	// Construit les headers comme string
+	std::string headers = m_firstline;
 
 	std::string contentType;
 	if (!m_servedFilePath.empty())
 		contentType = getFileType(m_servedFilePath);
 	else
 		contentType = "text/html";
+		
 	if (m_firstline == HEADER_303)
-		oss << "Location: " << m_request->getLocation().getRedirectionPath() << "\r\n";
+		headers += "Location: " + m_request->getLocation().getRedirectionPath() + "\r\n";
 
-	oss << "Content-Type: " << contentType << "\r\n";
-	oss << "Content-Length: " << m_body.size() << "\r\n";
-	oss << "Connection: close\r\n";
+	headers += "Content-Type: " + contentType + "\r\n";
+	std::ostringstream sizeSs;
+	sizeSs << m_body.size();
+	headers += "Content-Length: " + sizeSs.str() + "\r\n";
+	headers += "Connection: close\r\n";
 
 	for (std::map<std::string, std::string>::const_iterator it = m_header.begin(); it != m_header.end(); ++it)
-		oss << it->first << ": " << it->second << "\r\n";
+		headers += it->first + ": " + it->second + "\r\n";
 
-	oss << "\r\n";
-	oss << m_body;
-	return oss.str();
+	headers += "\r\n";
+	
+	// Concatène directement headers + body pour préserver les données binaires
+	std::string response;
+	response.reserve(headers.size() + m_body.size());
+	response.append(headers);
+	response.append(m_body);
+	
+	return response;
 }
 
 void Response::handleGet() {
-	const Location& location = m_request->getLocation();
-	std::string filePath = urlDecode(buildPath(m_request->getPath()));
+	// const Location& location = m_request->getLocation();
+	std::string requestPath = m_request->getPath();
+	
+	bool endsWithSlash = (requestPath.size() > 1 && requestPath[requestPath.size() - 1] == '/');
+	bool forceAutoIndex = (endsWithSlash && m_request->getIsAutoIndex());
+	
+	if (forceAutoIndex) {
+		std::string dirPath = urlDecode(buildDirPath(requestPath));
+		m_firstline = HEADER_OK;
+		m_request->autoIndex(dirPath, requestPath);
+		m_body = m_request->getAutoIndex();
+		m_servedFilePath.clear();
+		return;
+	}
+	
+	std::string filePath = urlDecode(buildPath(requestPath));
 
 	struct stat st;
 	if (stat(filePath.c_str(), &st) == 0) {
 		if (S_ISDIR(st.st_mode)) {
-			if (m_request->getIsAutoIndex()) {
-				m_firstline = HEADER_OK;
-				m_request->autoIndex();
-				m_body = m_request->getAutoIndex();
-				m_servedFilePath.clear();
-				return ;
-			}
-			else {
-				std::vector<std::string> indexes = getLocationOrServerIndexes();
-				bool indexFound = false;
-				for (size_t i = 0; i < indexes.size(); ++i) {
-					std::string indexFile = joinPaths(location.getRoot(), indexes[i]);
-					struct stat indexSt;
-					if (stat(indexFile.c_str(), &indexSt) == 0 && S_ISREG(indexSt.st_mode)) {
-						std::string body = loadFile(indexFile);
-						if (!body.empty()) {
-							m_firstline = HEADER_OK;
-							m_body = body;
-							m_servedFilePath = indexFile;
-							indexFound = true;
-							break;
-						}
+			std::vector<std::string> indexes = getLocationOrServerIndexes();
+			bool indexFound = false;
+			
+			for (size_t i = 0; i < indexes.size(); ++i) {
+				std::string indexPath = "/" + indexes[i];
+				std::string indexFile = buildPath(indexPath);
+				struct stat indexSt;
+				if (stat(indexFile.c_str(), &indexSt) == 0 && S_ISREG(indexSt.st_mode)) {
+					std::string body = loadFile(indexFile);
+					if (!body.empty()) {
+						m_firstline = HEADER_OK;
+						m_body = body;
+						m_servedFilePath = indexFile;
+						indexFound = true;
+						break;
 					}
 				}
-				if (!indexFound) {
-					setErrorResponse(403);
-					m_servedFilePath.clear();
-					return;
-				}
+			}
+			
+			if (!indexFound && m_request->getIsAutoIndex()) {
+				m_firstline = HEADER_OK;
+				m_request->autoIndex(filePath, m_request->getPath());
+				m_body = m_request->getAutoIndex();
+				m_servedFilePath.clear();
+				return;
+			}
+			
+			if (!indexFound) {
+				setErrorResponse(403);
+				m_servedFilePath.clear();
+				return;
 			}
 		}
 		else if (S_ISREG(st.st_mode)) {
-			Logger::log(WHITE, "It's a regular file, serve it");
 			std::string body = loadFile(filePath);
 			if (!body.empty()) {
 				m_firstline = HEADER_OK;
@@ -211,8 +308,6 @@ void Response::handleGet() {
 		m_servedFilePath.clear();
 		return;
 	}
-	if (!location.getRedirectionPath().empty())
-		m_firstline = HEADER_303;
 }
 
 void Response::setErrorResponse(int errorCode) {
@@ -269,8 +364,9 @@ void Response::setErrorResponse(int errorCode) {
 }
 
 void Response::handlePost() {
-	std::string root = m_request->getLocation().getRoot();
-	std::string uploadPath = m_request->getLocation().getUploadPath();
+	const Location& loc = m_request->getLocation();
+	std::string root = loc.getRoot().empty() ? m_server->getRoot() : loc.getRoot();
+	std::string uploadPath = loc.getUploadPath();
 	const std::vector<BinaryInfo>& binaries = m_request->getBinaryInfos();
 
 	if (!binaries.empty()) {
@@ -279,19 +375,18 @@ void Response::handlePost() {
 			const BinaryInfo& bin = binaries[i];
 			std::stringstream ss;
 			ss << getCurrentTimeMs();
-			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + "File" + "-" + ss.str() + "_" + bin.filename);
+			std::string filename = std::string("File") + "-" + ss.str() + "_" + bin.filename;
+			std::string filePath = normalizePath(joinPaths(joinPaths(root, uploadPath), filename));
 			std::ofstream outfile(filePath.c_str(), std::ios::binary);
 
 			if (!outfile) {
 				all_success = false;
-				Logger::log(RED, "Failed to open file for writing: %s", filePath.c_str());
 				setErrorResponse(500);
 				m_servedFilePath.clear();
 				return;
 			}
 			outfile.write(bin.data.c_str(), bin.data.size());
 			outfile.close();
-			Logger::log(WHITE, "File upload success");
 			m_servedFilePath = filePath;
 		}
 		if (all_success)
@@ -300,7 +395,7 @@ void Response::handlePost() {
 			m_firstline = HEADER_303;
 	}
 	else if (!m_request->getRawBody().empty()) {
-		std::string filePath = normalizePath(root + "/" + uploadPath + "/post_body.txt");
+		std::string filePath = normalizePath(joinPaths(joinPaths(root, uploadPath), "post_body.txt"));
 		std::ofstream outfile(filePath.c_str(), std::ios::binary);
 		if (!outfile) {
 			setErrorResponse(500);
@@ -315,12 +410,10 @@ void Response::handlePost() {
 		if (m_request->getLocation().getRedirectionPath() != "")
 			m_firstline = HEADER_303;
 		m_body = "Body posted successfully.";
-		Logger::log(WHITE, "Raw file upload success");
 	}
 	else {
 		setErrorResponse(400);
 		m_servedFilePath.clear();
-		Logger::log(RED, "Raw file upload failed");
 	}
 }
 
@@ -328,7 +421,6 @@ void Response::handleDelete() {
 	const Location& loc = m_request->getLocation();
 	std::vector<std::string> indexes = loc.getIndexFiles();
 	if (indexes.empty()) {
-		Logger::log(RED, "No default index script for delete");
 		setErrorResponse(500);
 		return;
 	}
@@ -338,9 +430,15 @@ void Response::handleDelete() {
 	if (cgiPass.empty())
 		return;
 
-	std::string scriptPath = normalizePath(loc.getRoot() + scriptName);
-	std::string filePath = buildPath(urlDecode(m_request->getPath()));
-	filePath.erase(0, 1);
+	std::string root = loc.getRoot().empty() ? m_server->getRoot() : loc.getRoot();
+	std::string scriptPath = normalizePath(joinPaths(root, scriptName));
+	
+	std::string mappedPath = buildPath(urlDecode(m_request->getPath()));
+	std::string filePath = mappedPath;
+	if (filePath.size() >= 2 && filePath[0] == '.' && filePath[1] == '/') {
+		filePath = filePath.substr(1);
+	}
+	
 	std::vector<std::string> args;
 	args.push_back(scriptPath);
 	args.push_back(filePath);
@@ -352,36 +450,35 @@ void Response::handleDelete() {
 	if (success && cgiOutput.find("success") != std::string::npos) {
 		m_firstline = HEADER_OK;
 		m_body = cgiOutput;
-		Logger::log(WHITE, "File Delete success");
+		if (!m_request->getLocation().getRedirectionPath().empty())
+			m_firstline = HEADER_303;
 	}
 	else {
 		setErrorResponse(500);
 		m_body = cgiOutput.empty() ? "Error deleting file." : cgiOutput;
-		Logger::log(RED, "File Delete Failed");
 	}
 }
 
 void Response::handlePut() {
-	std::string uploadPath = m_request->getLocation().getUploadPath();
-	std::string root = m_request->getLocation().getRoot();
+	const Location& loc = m_request->getLocation();
+	std::string uploadPath = loc.getUploadPath();
+	std::string root = loc.getRoot().empty() ? m_server->getRoot() : loc.getRoot();
 	const std::vector<BinaryInfo>& binaries = m_request->getBinaryInfos();
 
 	if (!binaries.empty()) {
 		bool all_success = true;
 		for (size_t i = 0; i < binaries.size(); ++i) {
 			const BinaryInfo& bin = binaries[i];
-			std::string filePath = normalizePath(root + "/" + uploadPath + "/" + bin.filename);
+			std::string filePath = normalizePath(joinPaths(joinPaths(root, uploadPath), bin.filename));
 			std::ofstream outfile(filePath.c_str(), std::ios::binary);
 
 			if (!outfile) {
 				all_success = false;
-				Logger::log(RED, "Put file upload failed");
 				setErrorResponse(500);
 				return;
 			}
 			outfile.write(bin.data.c_str(), bin.data.size());
 			outfile.close();
-			Logger::log(WHITE, "Put file upload success");
 		}
 		if (all_success)
 			m_firstline = HEADER_201;
@@ -395,8 +492,6 @@ void Response::handlePut() {
 void Response::prepareCgi() {
 	const Location& loc = m_request->getLocation();
 	std::string reqPath = m_request->getPath();
-	std::string root = loc.getRoot();
-	std::string path = loc.getPath();
 
 	std::string scriptName;
 	size_t lastSlash = reqPath.find_last_of("/");
@@ -404,7 +499,6 @@ void Response::prepareCgi() {
 
 	if (scriptName.empty()) {
 		setErrorResponse(404);
-		Logger::log(RED, "No script specified in URL");
 		return;
 	}
 
@@ -414,7 +508,7 @@ void Response::prepareCgi() {
 		return;
 	}
 
-	std::string scriptPath = normalizePath(root + path + scriptName);
+	std::string scriptPath = normalizePath(buildPath(reqPath));
 	std::vector<std::string> args;
 	args.push_back(scriptPath);
 
@@ -426,7 +520,6 @@ void Response::prepareCgi() {
 	if (success) {
 		m_firstline = HEADER_OK;
 		m_body = cgiOutput;
-		Logger::log(WHITE, "CGI execution success");
 	}
 	else {
 		m_body = cgiOutput.empty() ? "CGI execution failed" : cgiOutput;

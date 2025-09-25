@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/13 15:38:54 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/25 14:01:57 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,7 +88,7 @@ public:
 	const std::vector<BinaryInfo>& getBinaryInfos() const { return m_BinaryInfos; }
 	std::string getHeader(const std::string& key) const;
 
-	void autoIndex();
+	void autoIndex(const std::string& customPath = "", const std::string& customDisplayPath = "");
 	std::vector<std::string> convertEnv();
 	bool parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::string& cgiOutput, pid_t pid);
 	void childProcess(int* pipe_out, int* pipe_in, bool hasBody, const std::string& scriptPath, const std::vector<std::string>& args, char** m_env, const std::vector<std::string>& extraEnv);

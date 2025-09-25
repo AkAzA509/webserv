@@ -16,11 +16,13 @@ server {
 	error_page 500 error_pages/500.html;
 
 	location / {
+		#root ./file;
 		allow_methods GET POST;
 		autoindex on;
 	}
-	location /cookie-test {
-		index page/cookie-test.html
+	location /cookie {
+		index cookie.html;
+		root ./file/page;
 		allow_methods GET POST;
 		autoindex off;
 	}
@@ -44,11 +46,16 @@ server {
 		return /;
 	}
 	location /cgi-bin {
-		autoindex on
-		root ./file;
+		autoindex off;
+		root ./file/cgi-bin;
 		allow_methods GET POST;
-		index cgi-bin/change_color.sh;
+		index change_color.sh;
 		cgi_pass /usr/bin/bash;
 		cgi_ext .sh;
+	}
+	location /stylesheet {
+		root ./file/stylesheet;
+		allow_methods GET;
+		autoindex on;
 	}
 }

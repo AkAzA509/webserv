@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/09/19 10:49:07 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/24 17:24:57 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,7 +155,7 @@ std::ostream& operator<<(std::ostream& os, const Server& server)
 	}
 	os << "  }\n";
 
-	os << "  Locations:\n";
+	os << "  Locations: \n";
 	const std::vector<Location>& locs = server.getLocations();
 	for (size_t i = 0; i < locs.size(); ++i) {
 		os << "    [" << i << "] " << locs[i] << "\n";
@@ -190,7 +190,7 @@ Location::Location(const std::string& path) : m_path(path)
 std::ostream& operator<<(std::ostream& os, const Location& loc)
 {
 	os << "Location {\n";
-	os << "  Path: " << loc.getUploadPath() << "\n";
+	os << "  Path: " << loc.getPath() << "\n";
 	os << "  Redirection Path: " << loc.getRedirectionPath() << "\n";
 	os << "  Root: " << loc.getRoot() << "\n";
 	os << "  AutoIndex: " << (loc.isAutoIndexOn() ? "On" : "Off") << "\n";

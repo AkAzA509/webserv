@@ -37,11 +37,6 @@ void Config::parseConfigFile()
 		throw std::runtime_error("Couldn't open " + m_FileName);
 	
 	m_Servers = m_Parser.parse(infile, m_ep);
-	// for (std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it)
-	// {
-	// 	Server s = *it;
-	// 	std::cout << s << std::endl;
-	// }
 }
 
 Config::Config(int ac, char **av, char** ep) : m_ArgCount(ac), m_FileName(av[1] ? av[1] : std::string()), m_ep(ep)

@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/24 15:12:59 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/25 15:00:07 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -188,16 +188,49 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 
 	for (size_t i = 0; i < locations.size(); i++) {
 		const std::string& loc_path = locations[i].getPath();
-		if (m_path.compare(0, loc_path.size(), loc_path) == 0 && loc_path.size() > max_len) {
+		
+		std::string normalized_loc = loc_path;
+		std::string normalized_path = m_path;
+
+		if (normalized_loc.size() > 1 && normalized_loc[normalized_loc.size() - 1] == '/') {
+			normalized_loc = normalized_loc.substr(0, normalized_loc.size() - 1);
+		}
+		
+		if (normalized_path != "/" && normalized_path[normalized_path.size() - 1] != '/') {
+			normalized_path += "/";
+		}
+		
+		// Check si le path commence par la location OU si c'est un match exact
+		bool matches = false;
+		if (normalized_path.compare(0, normalized_loc.size(), normalized_loc) == 0) {
+			// Vérifie que c'est un vrai préfixe (suivi de '/' ou fin de chaîne)
+			if (normalized_path.size() == normalized_loc.size() || 
+				normalized_path[normalized_loc.size()] == '/') {
+				matches = true;
+			}
+		}
+		
+		if (matches && normalized_loc.size() > max_len) {
 			best_match = &locations[i];
-			max_len = loc_path.size();
+			max_len = normalized_loc.size();
+			break;
 		}
 	}
 
 	if (!best_match) {
-		Logger::log(RED, "No matching location for path: %s", m_path.c_str());
-		setError(E_ERROR_404);
-		return;
+		// Cherche la location racine "/"
+		for (size_t i = 0; i < locations.size(); i++) {
+			if (locations[i].getPath() == "/") {
+				best_match = &locations[i];
+				break;
+			}
+		}
+		
+		// Si même la location "/" n'existe pas, erreur 404
+		if (!best_match) {
+			setError(E_ERROR_404);
+			return;
+		}
 	}
 
 	m_loc = *best_match;
@@ -232,49 +265,7 @@ void Request::setError(int error_code) {
 	m_iserrorPage = true;
 }
 
-// std::ostream& operator<<(std::ostream& o, const Request& req) {
-// 	o << "=== HTTP Request ===" << std::endl;
-// 	o << "Method: " << req.getMethod() << std::endl;
-// 	o << "Path: " << req.getPath() << std::endl;
-// 	o << "HTTP Version: " << req.getHttpVersion() << std::endl;
 
-// 	const Location& loc = req.getLocation();
-// 	o << "\n=== Location Configuration ===" << std::endl;
-// 	o << "Path: " << loc.getPath() << std::endl;
-// 	o << "Root: " << loc.getRoot() << std::endl;
-// 	o << "Upload Path: " << loc.getUploadPath() << std::endl;
-// 	o << "Autoindex: " << (loc.isAutoIndexOn() ? "On" : "Off") << std::endl;
-// 	o << "Index Files: ";
-// 	const std::vector<std::string>& indexes = loc.getIndexFiles();
-// 	for (size_t i = 0; i < indexes.size(); ++i) {
-// 		if (i != 0) o << ", ";
-// 		o << indexes[i];
-// 	}
-// 	o << std::endl;
-
-// 	if (req.IsErrorPage()) {
-// 		o << "\n=== Error ===" << std::endl;
-// 		o << "Error Code: " << req.getErrorPage() << std::endl;
-// 	}
-
-// 	o << "\n=== Headers ===" << std::endl;
-// 	const std::map<std::string, std::string>& headers = req.getAllHeaders();
-// 	for (std::map<std::string, std::string>::const_iterator it = headers.begin(); it != headers.end(); ++it)
-// 		o << it->first << ": " << it->second << std::endl;
-
-// 	const std::vector<BinaryInfo>& binaries = req.getBinaryInfos();
-// 	if (!binaries.empty()) {
-// 		o << "\n=== Binary Data ===" << std::endl;
-// 		for (size_t i = 0; i < binaries.size(); ++i) {
-// 			const BinaryInfo& bin = binaries[i];
-// 			o << "Field: " << bin.field_name << std::endl;
-// 			o << "Filename: " << bin.filename << std::endl;
-// 			o << "Data Size: " << bin.data.size() << " bytes" << std::endl;
-// 			if (i != binaries.size() - 1) o << "---" << std::endl;
-// 		}
-// 	}
-// 	return o;
-// }
 
 std::vector<std::string> Request::convertEnv() {
 	std::vector<std::string> env;
@@ -396,9 +387,20 @@ bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string
 	return true;
 }
 
-void Request::autoIndex() {
-	std::string root = m_loc.getRoot();
-	std::string localPath = normalizePath(root + "/" + m_path);
+void Request::autoIndex(const std::string& customPath, const std::string& customDisplayPath) {
+	std::string localPath;
+	std::string displayPath;
+	
+	// Si des paramètres personnalisés sont fournis, les utiliser
+	if (!customPath.empty()) {
+		localPath = customPath;
+		displayPath = customDisplayPath.empty() ? m_path : customDisplayPath;
+	} else {
+		// Comportement par défaut
+		std::string root = m_loc.getRoot();
+		localPath = normalizePath(root + "/" + m_path);
+		displayPath = m_path;
+	}
 
 	DIR* directory = opendir(localPath.c_str());
 	if (!directory) {
@@ -410,16 +412,16 @@ void Request::autoIndex() {
 	std::string page;
 
 	page += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n";
-	page += "<title>Index of " + m_path + "</title>\n";
+	page += "<title>Index of " + displayPath + "</title>\n";
 	page += "<style>\nbody { font-family: sans-serif; max-width: 800px; margin: 40px auto; }\n";
 	page += "table { border-collapse: collapse; width: 100%; }\n";
 	page += "th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }\n";
 	page += "a { text-decoration: none; color: #0066cc; }\n";
 	page += "a:hover { text-decoration: underline; }\n</style>\n</head>\n";
-	page += "<body>\n<h1>Index of " + m_path + "</h1>\n";
+	page += "<body>\n<h1>Index of " + displayPath + "</h1>\n";
 	page += "<table>\n<tr><th>Name</th><th>Size</th></tr>\n";
 
-	if (m_path != "/")
+	if (displayPath != "/")
 		page += "<tr><td><a href=\"../\">../</a></td><td>-</td></tr>\n";
 
 	while ((entry = readdir(directory)) != NULL) {

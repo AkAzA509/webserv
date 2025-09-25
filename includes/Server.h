@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/wait.h>
 #include <ctime>
 #include <set>
 #include <cstring>
@@ -68,7 +69,7 @@ class Location
 		std::string getPath() const { return m_path; }
 		std::string getUploadPath() const { return m_uploadPath; }
 		std::string getRedirectionPath() const { return m_redirection_path; }
-		std::vector<std::string> getIndexFiles() const { return m_indexFiles; }
+		const std::vector<std::string>& getIndexFiles() const { return m_indexFiles; }
 		std::string getRoot() const { return m_root; }
 		const std::vector<std::string>& getAllowedMethods() const { return m_allowed_methods; }
 		bool isAutoIndexOn() const { return m_autoIndex; }
@@ -194,3 +195,6 @@ std::vector<std::string> prepareCgiEnv(const Request& req, const std::string& sc
 // Signaux
 
 void sigint_handler(int);
+void sigterm_handler(int);
+void sigpipe_handler(int);
+void sigchld_handler(int);

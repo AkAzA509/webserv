@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:45:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/09/19 13:46:52 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/25 14:01:53 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,9 @@
 #include <map>
 #include <fstream>
 #include <set>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <cstring>
 #include "Request.h"
 #include "Server.h"
 
@@ -76,5 +79,6 @@ class Response
 		void prepareCgi();
 		std::string selectCgiInterpreter(const Location& loc, const std::string& scriptName);
 		std::string	buildPath(const std::string& page_path) const;
+		std::string	buildDirPath(const std::string& page_path) const;
 		std::pair<std::string, std::string> getError(int page, const std::string& page_path) const;
 };
