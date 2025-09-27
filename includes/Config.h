@@ -21,6 +21,7 @@ class Config
 		char **m_ep;
 		std::vector<Server> m_Servers;
 		void parseConfigFile();
+		bool verifServer(const Server& server) const;
 	public:
 		Config(int ac, char **av, char **ep);
 		std::vector<Server>& getServer();

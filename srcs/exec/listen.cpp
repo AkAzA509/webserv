@@ -17,7 +17,7 @@ void Server::cleanupClient(int epfd, int client_fd, struct epoll_event ev) {
 // Set une reponse a envoyer sans requete valide pour bypass le parser etc
 void Server::setErrorForced(int error_code, int client_fd, int epfd, struct epoll_event ev) {
 	Request req;
-	Response resp(req, *this);
+	Response resp(req, client_fd, *this);
 	resp.setErrorResponse(error_code);
 	sendClient(resp, client_fd, epfd, ev);
 }
@@ -105,17 +105,50 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 void Server::sendClient(Response& response, int client_fd, int epfd, struct epoll_event ev) {
 	const std::string& resp_str = response.getFullResponse();
 
-	ssize_t sent = 0;
-
-	if (m_forcedResponse.empty())
-		sent = send(client_fd, resp_str.c_str(), resp_str.size(), MSG_NOSIGNAL);
-	else
-		sent = send(client_fd, m_forcedResponse.c_str(), m_forcedResponse.size(), MSG_NOSIGNAL);
-
-	if (sent < 0) {
-		Logger::log(RED, "send error: %s", strerror(errno));
-		cleanupClient(epfd, client_fd, ev);
+	// Helper to toggle blocking mode
+	int flags = fcntl(client_fd, F_GETFL, 0);
+	bool wasNonBlocking = (flags != -1) && (flags & O_NONBLOCK);
+	if (wasNonBlocking) {
+		fcntl(client_fd, F_SETFL, flags & ~O_NONBLOCK);
 	}
+
+	const char* buf;
+	size_t len;
+	std::string const* src;
+	if (m_forcedResponse.empty()) {
+		src = &resp_str;
+	} else {
+		src = &m_forcedResponse;
+	}
+	buf = src->c_str();
+	len = src->size();
+
+	size_t totalSent = 0;
+	while (totalSent < len) {
+		ssize_t n = send(client_fd, buf + totalSent, len - totalSent, MSG_NOSIGNAL);
+		if (n > 0) {
+			totalSent += static_cast<size_t>(n);
+			continue;
+		}
+		// if (n == -1 && errno == EINTR)
+		// 	continue;
+		// if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+		// 	continue; // should not happen in blocking mode, but just in case
+		Logger::log(RED, "send error: %s", strerror(errno));
+		break;
+	}
+
+	// Restore original flags
+	if (wasNonBlocking) {
+		fcntl(client_fd, F_SETFL, flags);
+	}
+
+	if (totalSent < len) {
+		// Failed to send everything; close client
+		cleanupClient(epfd, client_fd, ev);
+		return;
+	}
+
 	m_clients[client_fd].last_activity = getCurrentTimeMs();
 }
 
@@ -153,6 +186,9 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 				continue;
 			}
 			m_clients[client_fd] = ClientState();
+			char ip_buffer[INET_ADDRSTRLEN];
+			if (inet_ntop(AF_INET, &client_addr.sin_addr, ip_buffer, sizeof(ip_buffer)))
+				m_clients[client_fd].client_ip = ip_buffer;
 		}
 		else {
 			if (recvClient(epfd, ev[i], fd)) {
@@ -160,7 +196,7 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 				if (!request.empty()) {
 					try {
 						Request req(*this, request, m_ep);
-						Response resp(req, *this);
+						Response resp(req, fd, *this);
 						sendClient(resp, fd, epfd, ev[i]);
 					} catch (const std::exception& e) {
 						Logger::log(RED, "Error processing request: %s", e.what());
@@ -178,6 +214,7 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 
 void Server::checkTimeouts(int epfd) {
 	unsigned long now_ms = getCurrentTimeMs();
+	cleanupSessions(now_ms);
 	std::vector<int> clients_to_timeout;
 
 	for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ++it) {

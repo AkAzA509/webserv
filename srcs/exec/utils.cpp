@@ -58,6 +58,22 @@ bool Location::isAllowedMethod(const std::string& method) const {
 	return false;
 }
 
+
+
+unsigned long hash(int x) {
+	return static_cast<u_long>(x * 2654435761UL);
+}
+
+unsigned long hash(const std::string& str)
+{
+	ulong hash = 5381;
+
+	for (std::string::const_iterator it = str.begin(); it != str.end(); ++it)
+		hash = ((hash << 5) + hash) + *it;
+
+	return hash;
+}
+
 // Evalue le type de body renvoyer en response
 std::string getFileType(const std::string& path) {
 	size_t dot = path.rfind('.');

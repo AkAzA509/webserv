@@ -31,6 +31,29 @@ extern volatile sig_atomic_t sig;
 
 #define MAX_EVENT 100
 
+struct CookieData
+{
+	std::string name;
+	std::string value;
+	std::string path;
+	std::string domain;
+	unsigned long expires;
+	bool httpOnly;
+	bool secure;
+	CookieData() : path("/"), expires(0), httpOnly(false), secure(false) {}
+};
+
+struct SessionData
+{
+	std::string id;
+	std::map<std::string, std::string> values;
+	unsigned long created_at;
+	unsigned long last_seen;
+	std::string client_ip;
+
+	SessionData() : created_at(0), last_seen(0) {}
+};
+
 struct Directive
 {
 	std::string name;
@@ -110,6 +133,8 @@ struct ClientState {
 	std::string request_buffer;
 	bool request_complete;
 	unsigned long last_activity;
+	std::string client_ip;
+	std::string session_id;
 	ClientState() : request_complete(false), last_activity(getCurrentTimeMs()) {}
 };
 
@@ -128,8 +153,13 @@ class Server
 		std::string m_uploadPath;
 		std::vector<Location> m_locations;
 		std::map<int, ClientState> m_clients;
+		std::map<std::string, SessionData> m_sessions;
 		std::string m_forcedResponse;
 		unsigned long m_timeout;
+		unsigned long m_sessionTimeoutMs;
+		std::string m_sessionCookieName;
+		std::string generateSessionId();
+		void cleanupSessions(unsigned long nowMs);
 	public:
 		Server();
 		~Server();
@@ -177,13 +207,24 @@ class Server
 		void setClientMaxBodySize(size_t size);
 		void addEnv(char **ep);
 		void setTimeout(const std::string& time);
+		std::string getClientIp(int client_fd) const;
+		unsigned long getSessionTimeoutMs() const { return m_sessionTimeoutMs; }
+		const std::string& getSessionCookieName() const { return m_sessionCookieName; }
+		SessionData& ensureSession(const std::string& incomingSessionId, const std::string& clientIp, bool& created);
+		SessionData* getSession(const std::string& sessionId);
+		const SessionData* getSession(const std::string& sessionId) const;
+		void destroySession(const std::string& sessionId);
+		void setSessionValue(const std::string& sessionId, const std::string& key, const std::string& value);
+		bool getSessionValue(const std::string& sessionId, const std::string& key, std::string& out) const;
+		void touchSession(const std::string& sessionId);
 	};
 	
 std::ostream& operator<<(std::ostream& o, const Location& loc);
 std::ostream& operator<<(std::ostream& o, const Server& server);
 
 // Utils
-
+unsigned long hash(int x);
+unsigned long hash(const std::string& str);
 std::vector<std::string> splitRequest(const std::string& str);
 void print_error(const std::string& str, int fd);
 std::string loadFile(const std::string& path);
@@ -191,6 +232,16 @@ std::string getFileType(const std::string& path);
 std::string normalizePath(const std::string& path);
 std::string urlDecode(const std::string& str);
 std::vector<std::string> prepareCgiEnv(const Request& req, const std::string& scriptName, const std::string& reqPath);
+
+template <typename T>
+std::string to_string(const T& v)
+{
+	std::stringstream ss;
+
+	ss << v;
+
+	return ss.str();
+}
 
 // Signaux
 

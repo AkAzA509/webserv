@@ -3,25 +3,27 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/25 15:00:07 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/27 03:52:35 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Request.h"
 #include "Parser.h"
 #include "Logger.h"
+#include <errno.h>
+#include <signal.h>
 
-Request::Request() : m_iserrorPage(false), m_error_page(0), m_env(NULL) {}
+Request::Request() : m_iserrorPage(false), m_error_page(0), m_env(NULL), m_sessionId() {}
 
 std::ostream& operator<<(std::ostream& o, const BinaryInfo& info) {
 	o << info.filename << " " << info.data;
 	return o;
 }
 
-Request::Request(Server& server, const std::string& request, char **env) : m_iserrorPage(false), m_error_page(0), m_env(env) {
+Request::Request(Server& server, const std::string& request, char **env) : m_iserrorPage(false), m_error_page(0), m_env(env), m_sessionId() {
 	parseHeader(request, server);
 	if (!m_iserrorPage)
 		parseBody(request);
@@ -47,6 +49,8 @@ Request &Request::operator=(const Request &other) {
 		m_autoIndexPage = other.m_autoIndexPage;
 		m_isAutoIndex = other.m_isAutoIndex;
 		m_rawBody = other.m_rawBody;
+		m_cookies = other.m_cookies;
+		m_sessionId = other.m_sessionId;
 	}
 	return *this;
 }
@@ -152,6 +156,51 @@ void Request::parseBody(const std::string& request) {
 		m_rawBody = body;
 }
 
+void Request::parseCookies()
+{
+	std::string cookieHeader = getHeader("Cookie");
+
+	if (cookieHeader.empty()) return;
+
+	std::stringstream ss(cookieHeader);
+	std::string pair;
+
+	while (std::getline(ss, pair, ';'))
+	{
+		size_t eq = pair.find('=');
+
+		if (eq != std::string::npos)
+		{
+			CookieData cookie;
+			cookie.name = pair.substr(0, eq);
+			cookie.value = pair.substr(eq + 1);
+
+			cookie.name.erase(0, cookie.name.find_first_not_of(" \t"));
+			cookie.value.erase(0, cookie.value.find_first_not_of(" \t"));
+			size_t lastName = cookie.name.find_last_not_of(" \t");
+			if (lastName != std::string::npos)
+				cookie.name.erase(lastName + 1);
+			else
+				cookie.name.clear();
+			size_t lastValue = cookie.value.find_last_not_of(" \t");
+			if (lastValue != std::string::npos)
+				cookie.value.erase(lastValue + 1);
+			else
+				cookie.value.clear();
+
+			m_cookies.push_back(cookie);
+		}
+	}
+}
+
+std::string Request::getCookieValue(const std::string& name) const {
+	for (size_t i = 0; i < m_cookies.size(); ++i) {
+		if (m_cookies[i].name == name)
+			return m_cookies[i].value;
+	}
+	return std::string();
+}
+
 void Request::parseHeader(const std::string& request, const Server& server) {
 	size_t header_end = request.find("\r\n\r\n");
 
@@ -172,6 +221,20 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 		setError(E_ERROR_400);
 		return;
 	}
+
+	for (size_t i = 1; i < headers.size(); i++) {
+		size_t colon = headers[i].find(':');
+		if (colon == std::string::npos)
+			continue;
+
+		std::string key = trim(headers[i].substr(0, colon));
+		std::string value = trim(headers[i].substr(colon + 1));
+		
+		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+		m_headers[key] = value;
+	}
+
+	parseCookies();
 
 	m_method = req_line[0];
 	m_path = req_line[1];
@@ -239,17 +302,7 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 	if (m_loc.isAutoIndexOn())
 		m_isAutoIndex = true;
 
-	for (size_t i = 1; i < headers.size(); i++) {
-		size_t colon = headers[i].find(':');
-		if (colon == std::string::npos)
-			continue;
-
-		std::string key = trim(headers[i].substr(0, colon));
-		std::string value = trim(headers[i].substr(colon + 1));
-		
-		std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-		m_headers[key] = value;
-	}
+	
 }
 
 std::string Request::getHeader(const std::string& key) const {
@@ -341,8 +394,20 @@ bool Request::parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::stri
 	close(pipe_out[0]);
 	int status;
 
-	if (waitpid(pid, &status, 0) == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-		Logger::log(RED, "CGI script failed");
+	int ret = waitpid(pid, &status, 0);
+	if (ret == -1) {
+		Logger::log(RED, "waitpid failed for CGI: %s", strerror(errno));
+		return false;
+	}
+	if (!WIFEXITED(status)) {
+		if (WIFSIGNALED(status))
+			Logger::log(RED, "CGI script terminated by signal %d", WTERMSIG(status));
+		else
+			Logger::log(RED, "CGI script ended abnormally");
+		return false;
+	}
+	if (WEXITSTATUS(status) != 0) {
+		Logger::log(RED, "CGI script failed (exit status %d)", WEXITSTATUS(status));
 		return false;
 	}
 	return true;
@@ -351,9 +416,15 @@ bool Request::parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::stri
 bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string>& args, const std::vector<std::string>& extraEnv, std::string& cgiOutput) {
 	int pipe_out[2];
 	int pipe_in[2];
+	sigset_t sigchldMask;
+	sigset_t oldMask;
+	sigemptyset(&sigchldMask);
+	sigaddset(&sigchldMask, SIGCHLD);
+	sigprocmask(SIG_BLOCK, &sigchldMask, &oldMask);
 
 	if (pipe(pipe_out) == -1) {
 		Logger::log(RED, "pipe failed for CGI");
+		sigprocmask(SIG_SETMASK, &oldMask, NULL);
 		return false;
 	}
 
@@ -363,6 +434,7 @@ bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string
 		Logger::log(RED, "pipe_in failed for CGI");
 		close(pipe_out[0]);
 		close(pipe_out[1]);
+		sigprocmask(SIG_SETMASK, &oldMask, NULL);
 		return false;
 	}
 
@@ -375,15 +447,21 @@ bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string
 			close(pipe_in[0]);
 			close(pipe_in[1]);
 		}
+		sigprocmask(SIG_SETMASK, &oldMask, NULL);
 		return false;
 	}
-	if (pid == 0)
+	if (pid == 0) {
+		sigprocmask(SIG_SETMASK, &oldMask, NULL);
 		childProcess(pipe_out, pipe_in, hasBody, scriptPath, args, m_env, extraEnv);
+	}
 	else {
-		if (!parentProcess(pipe_out, pipe_in, hasBody, cgiOutput, pid))
+		bool ok = parentProcess(pipe_out, pipe_in, hasBody, cgiOutput, pid);
+		sigprocmask(SIG_SETMASK, &oldMask, NULL);
+		if (!ok)
 			return false;
 		return true;
 	}
+	sigprocmask(SIG_SETMASK, &oldMask, NULL);
 	return true;
 }
 

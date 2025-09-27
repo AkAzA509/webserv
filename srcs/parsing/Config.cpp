@@ -6,7 +6,7 @@
 /*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:34:03 by macorso           #+#    #+#             */
-/*   Updated: 2025/08/06 18:44:10 by macorso          ###   ########.fr       */
+/*   Updated: 2025/09/27 00:03:16 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,11 +56,25 @@ Config::Config(int ac, char **av, char** ep) : m_ArgCount(ac), m_FileName(av[1] 
 	
 }
 
+bool Config::verifServer(const Server& server) const
+{
+	if (server.getHostIp().empty() || server.getPorts().empty() || server.getServerName().empty())
+		return false;
+	return true;
+}
+
 void Config::launchServers() {
 	try
 	{
 		for(std::vector<Server>::iterator it = m_Servers.begin(); it != m_Servers.end(); ++it) {
 			Server server = *it;
+
+			if (verifServer(server) == false)
+			{
+				Logger::log(RED, "Server not correctly setup, trying next server if one.");
+				continue;
+			}
+			
 			server.setupSocket();
 			server.waitConnection();
 		}

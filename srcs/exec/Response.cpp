@@ -13,10 +13,26 @@
 
 #include "Response.h"
 #include "Logger.h"
+#include <functional>
 
 Response::Response() : m_server(NULL), m_request(NULL), m_firstline(), m_header(), m_body(), m_servedFilePath() {}
 
-Response::Response(Request& req, Server& server) : m_server(&server), m_request(&req) {
+Response::Response(Request& req, int client_fd, Server& server) : m_server(&server), m_request(&req) {
+	bool created = false;
+	std::string existingSessionId = req.getCookieValue(server.getSessionCookieName());
+	std::string clientIp = server.getClientIp(client_fd);
+	SessionData& session = server.ensureSession(existingSessionId, clientIp, created);
+	req.setSessionId(session.id);
+
+	CookieData cookie;
+	cookie.name = server.getSessionCookieName();
+	cookie.value = session.id;
+	cookie.path = "/";
+	cookie.httpOnly = true;
+	cookie.expires = (getCurrentTimeMs() + server.getSessionTimeoutMs()) / 1000;
+
+	addCookie(cookie);
+	
 	buildResponse();
 }
 
@@ -531,6 +547,32 @@ void Response::buildResponse() {
 	std::string method = m_request->getMethod();
 	setDefaultResponse();
 
+	for (size_t i = 0; i < m_setCookies.size(); ++i)
+	{
+		const CookieData& c = m_setCookies[i];
+
+		std::string setCookie = c.name + "=" + c.value;
+		
+		if (!c.path.empty())
+			setCookie += "; Path=" + c.path;
+		if (!c.domain.empty())
+			setCookie += "; Domain=" + c.domain;
+		if (c.expires > 0)
+		{
+			char buffer[100];
+			time_t t = static_cast<time_t>(c.expires);
+			struct tm* gmt = std::gmtime(&t);
+			std::strftime(buffer, 100, "%a, %d %b %Y %H:%M:%S GMT", gmt);
+			setCookie += "; Expires=" + std::string(buffer);
+		}
+		if (c.httpOnly)
+			setCookie += "; HttpOnly";
+		if (c.secure)
+			setCookie += "; Secure";
+
+		m_header.insert(std::make_pair("Set-Cookie", setCookie));
+	}
+
 	if (m_request->IsErrorPage()) {
 		const std::map<int, std::string>& pages = m_server->getErrorPages();
 		std::map<int, std::string>::const_iterator it = pages.find(m_request->getErrorPage());
@@ -563,4 +605,14 @@ void Response::buildResponse() {
 				setErrorResponse(500);
 		}
 	}
+}
+
+std::ostream& operator<<(std::ostream& o, const Response& r)
+{
+	o << "Response {\n";
+
+	o << r.getFullResponse();
+
+	o << "\r\n}";
+	return o;
 }

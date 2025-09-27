@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/25 14:01:57 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/27 01:43:03 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,6 +63,9 @@ private:
 	std::string m_autoIndexPage;
 	bool m_isAutoIndex;
 	std::string m_rawBody;
+	std::vector<CookieData> m_cookies;
+	std::string m_sessionId;
+
 	void setError(int error_code);
 
 public:
@@ -74,6 +77,7 @@ public:
 
 	
 public:
+	const std::vector<CookieData>& getCookies() const { return m_cookies; }
 	const std::string& getMethod() const { return m_method; }
 	bool getIsAutoIndex() const { return m_isAutoIndex; }
 	const std::string& getCgiOutput() const { return m_cgiOutput; }
@@ -87,6 +91,9 @@ public:
 	const Location& getLocation() const { return m_loc; }
 	const std::vector<BinaryInfo>& getBinaryInfos() const { return m_BinaryInfos; }
 	std::string getHeader(const std::string& key) const;
+	std::string getCookieValue(const std::string& name) const;
+	void setSessionId(const std::string& sessionId) { m_sessionId = sessionId; }
+	const std::string& getSessionId() const { return m_sessionId; }
 
 	void autoIndex(const std::string& customPath = "", const std::string& customDisplayPath = "");
 	std::vector<std::string> convertEnv();
@@ -95,6 +102,7 @@ public:
 	void parseBody(const std::string& request);
 	void parseContentDispo(const std::string& line, BinaryInfo& outBinInfo);
 	void parseHeader(const std::string& request, const Server& server);
+	void parseCookies();
 	void parseBinaryInfos(const std::string& body);
 	bool doCGI(const std::string& scriptPath, const std::vector<std::string>& args, const std::vector<std::string>& extraEnv, std::string& cgiOutput);
 	

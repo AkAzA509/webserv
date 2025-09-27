@@ -3,19 +3,25 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/09/24 17:24:57 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/27 02:10:08 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.h"
 #include <numeric>
 #include <limits>
+#include <cstdlib>
+#include <ctime>
+#include <sstream>
+#include <iomanip>
 #include "Logger.h"
 
-Server::Server() : m_Client_max_body_size(std::numeric_limits<size_t>::infinity()), m_timeout(5000) {}
+Server::Server() : m_Client_max_body_size(std::numeric_limits<size_t>::infinity()), m_root("./"), m_timeout(5000), m_sessionTimeoutMs(30 * 60 * 1000), m_sessionCookieName("session_id") {
+	std::srand(static_cast<unsigned>(std::time(NULL) ^ reinterpret_cast<long>(this)));
+}
 
 Server::~Server() {}
 
@@ -126,6 +132,111 @@ std::vector<std::string> splitRequest(const std::string& str) {
 		result.push_back("");
 
 	return result;
+}
+
+std::string Server::getClientIp(int client_fd) const {
+	std::map<int, ClientState>::const_iterator it = m_clients.find(client_fd);
+	if (it != m_clients.end())
+		return it->second.client_ip;
+	return std::string();
+}
+
+std::string Server::generateSessionId() {
+	unsigned long now = getCurrentTimeMs();
+	std::ostringstream oss;
+	oss << std::hex << std::uppercase << now << "-";
+	oss << std::setw(8) << std::setfill('0') << (static_cast<unsigned long>(std::rand()) & 0xffffffffUL);
+	oss << "-" << std::setw(4) << std::setfill('0') << (static_cast<unsigned long>(std::rand()) & 0xffffUL);
+	return oss.str();
+}
+
+void Server::cleanupSessions(unsigned long nowMs) {
+	for (std::map<std::string, SessionData>::iterator it = m_sessions.begin(); it != m_sessions.end();) {
+		if (nowMs < it->second.last_seen || nowMs - it->second.last_seen > m_sessionTimeoutMs) {
+			std::map<std::string, SessionData>::iterator toErase = it;
+			++it;
+			m_sessions.erase(toErase);
+		}
+		else
+			++it;
+	}
+}
+
+SessionData& Server::ensureSession(const std::string& incomingSessionId, const std::string& clientIp, bool& created) {
+	unsigned long now = getCurrentTimeMs();
+	cleanupSessions(now);
+	created = false;
+
+	if (!incomingSessionId.empty()) {
+		std::map<std::string, SessionData>::iterator it = m_sessions.find(incomingSessionId);
+		if (it != m_sessions.end()) {
+			it->second.last_seen = now;
+			if (!clientIp.empty())
+				it->second.client_ip = clientIp;
+			return it->second;
+		}
+	}
+
+	std::string newId;
+	do {
+		newId = generateSessionId();
+	} while (m_sessions.find(newId) != m_sessions.end());
+
+	SessionData session;
+	session.id = newId;
+	session.created_at = now;
+	session.last_seen = now;
+	session.client_ip = clientIp;
+	m_sessions[newId] = session;
+	created = true;
+	return m_sessions[newId];
+}
+
+SessionData* Server::getSession(const std::string& sessionId) {
+	std::map<std::string, SessionData>::iterator it = m_sessions.find(sessionId);
+	if (it != m_sessions.end())
+		return &it->second;
+	return NULL;
+}
+
+const SessionData* Server::getSession(const std::string& sessionId) const {
+	std::map<std::string, SessionData>::const_iterator it = m_sessions.find(sessionId);
+	if (it != m_sessions.end())
+		return &it->second;
+	return NULL;
+}
+
+void Server::destroySession(const std::string& sessionId) {
+	m_sessions.erase(sessionId);
+}
+
+void Server::setSessionValue(const std::string& sessionId, const std::string& key, const std::string& value) {
+	unsigned long now = getCurrentTimeMs();
+	cleanupSessions(now);
+	std::map<std::string, SessionData>::iterator it = m_sessions.find(sessionId);
+	if (it == m_sessions.end())
+		return;
+	it->second.values[key] = value;
+	it->second.last_seen = now;
+}
+
+bool Server::getSessionValue(const std::string& sessionId, const std::string& key, std::string& out) const {
+	std::map<std::string, SessionData>::const_iterator it = m_sessions.find(sessionId);
+	if (it == m_sessions.end())
+		return false;
+	std::map<std::string, std::string>::const_iterator valueIt = it->second.values.find(key);
+	if (valueIt == it->second.values.end())
+		return false;
+	out = valueIt->second;
+	return true;
+}
+
+void Server::touchSession(const std::string& sessionId) {
+	unsigned long now = getCurrentTimeMs();
+	cleanupSessions(now);
+	std::map<std::string, SessionData>::iterator it = m_sessions.find(sessionId);
+	if (it != m_sessions.end())
+		it->second.last_seen = now;
 }
 
 std::ostream& operator<<(std::ostream& os, const Server& server)

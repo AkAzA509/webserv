@@ -25,7 +25,7 @@
 
   <div class="container">
     <h2>Select a Color to Change the Page Background</h2>
-    <form action="./cgi-bin/change_color.sh" method="post">
+  <form action="/cgi-bin/change_color.sh" method="post">
         <label for="color">Choose a color:</label>
         <select id="color" name="color">
             <option value="red">Red</option>
@@ -80,7 +80,7 @@
       .then(async res => {
         const text = await res.text();
         document.getElementById('result').textContent =
-          `DELETE ${res.status} ${res.statusText}\n\n${text}`;
+          `DELETE ${res.status} ${res.statusText}\n\n`;
       })
       .catch(err => {
         document.getElementById('result').textContent = 'Erreur : ' + err;

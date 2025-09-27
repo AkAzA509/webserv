@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Response.h                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
+/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:45:21 by macorso           #+#    #+#             */
-/*   Updated: 2025/09/25 14:01:53 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/27 01:19:43 by macorso          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,7 @@ class Response
 		std::map<std::string, std::string> m_header;
 		std::string m_body;
 		std::string m_servedFilePath;
+		std::vector<CookieData> m_setCookies;
 
 		void buildResponse();
 		void setDefaultResponse();
@@ -67,8 +68,9 @@ class Response
 	
 	public:
 		Response();
-		Response(Request& req, Server& server);
+		Response(Request& req, int cliend_fd, Server& server);
 		
+		void addCookie(const CookieData& cookie) { m_setCookies.push_back(cookie); }
 		const std::string& getFirstLine() const {return m_firstline;}
 		const std::map<std::string, std::string>& getHeaders() const {return m_header;}
 		const std::string& getBody() const {return m_body;}
@@ -81,4 +83,6 @@ class Response
 		std::string	buildPath(const std::string& page_path) const;
 		std::string	buildDirPath(const std::string& page_path) const;
 		std::pair<std::string, std::string> getError(int page, const std::string& page_path) const;
+
+		friend std::ostream& operator<<(std::ostream& o, const Response& r);
 };
