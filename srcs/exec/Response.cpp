@@ -400,6 +400,7 @@ void Response::handlePost() {
 			outfile.write(bin.data.c_str(), bin.data.size());
 			outfile.close();
 			m_servedFilePath = filePath;
+			Logger::log(CYAN, "File uploaded: %s", filePath.c_str());
 		}
 		if (all_success)
 			m_firstline = HEADER_201;
@@ -460,12 +461,14 @@ void Response::handleDelete() {
 
 	bool success = m_request->doCGI(cgiPass, args, extraEnv, cgiOutput);
 	if (success && cgiOutput.find("success") != std::string::npos) {
+		Logger::log(CYAN, "File deleted: %s", filePath.c_str());
 		m_firstline = HEADER_OK;
 		m_body = cgiOutput;
 		if (!m_request->getLocation().getRedirectionPath().empty())
 			m_firstline = HEADER_303;
 	}
 	else {
+		Logger::log(RED, "Failed to delete file: %s", filePath.c_str());
 		setErrorResponse(500);
 		m_body = cgiOutput.empty() ? "Error deleting file." : cgiOutput;
 	}
@@ -491,6 +494,7 @@ void Response::handlePut() {
 			}
 			outfile.write(bin.data.c_str(), bin.data.size());
 			outfile.close();
+			Logger::log(CYAN, "File uploaded: %s", filePath.c_str());
 		}
 		if (all_success)
 			m_firstline = HEADER_201;
@@ -530,6 +534,7 @@ void Response::prepareCgi() {
 	bool success = m_request->doCGI(cgiPass, args, extraEnv, cgiOutput);
 
 	if (success) {
+		Logger::log(LIGHTMAGENTA, "CGI executed successfully", scriptName.c_str(), cgiPass.c_str());
 		m_firstline = HEADER_OK;
 		m_body = cgiOutput;
 	}

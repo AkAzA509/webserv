@@ -174,7 +174,6 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 					break;
 				}
 			}
-			
 			int flags = fcntl(client_fd, F_GETFL, 0);
 			if (flags != -1)
 				fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);

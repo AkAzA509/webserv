@@ -20,7 +20,10 @@ try:
 	sys.exit(0)
 except FileNotFoundError:
 	print("Error file not found")
+	sys.exit(1)
 except PermissionError:
 	print("Error permission denied")
+	sys.exit(1)
 except Exception as e:
 	print(f"Error deleting file: {e}")
+	sys.exit(1)

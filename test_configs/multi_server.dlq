@@ -1,0 +1,45 @@
+server {
+	listen 8080;
+	server_name localhost;
+	host 0.0.0.0;
+	root ./file;
+	timeout_time 3000;
+	client_max_body_size 2000000;
+	index page/index.html;
+	error_page 404 error_pages/404.html;
+
+	location / {
+		allow_methods GET POST;
+		autoindex on;
+	}
+	
+	location /static {
+		root ./file/stylesheet;
+		allow_methods GET;
+		autoindex on;
+	}
+}
+
+server {
+	listen 8081;
+	server_name server2.test;
+	host 127.0.0.1;
+	root ./file;
+	timeout_time 2000;
+	client_max_body_size 500000;
+	index page/index.html;
+	error_page 404 error_pages/404.html;
+	error_page 403 error_pages/403.html;
+
+	location / {
+		allow_methods GET;
+		autoindex off;
+	}
+	
+	location /upload {
+		allow_methods GET POST PUT DELETE;
+		root ./file;
+		upload_path /post_file;
+		autoindex on;
+	}
+}

@@ -1,0 +1,50 @@
+server {
+	listen 8080;
+	server_name localhost;
+	host 0.0.0.0;
+	root ./file;
+	timeout_time 30000;
+	client_max_body_size 100000000;
+	index page/index.html;
+	error_page 413 error_pages/413.html;
+	error_page 404 error_pages/404.html;
+
+	location / {
+		allow_methods GET POST;
+		autoindex on;
+	}
+
+	location /upload {
+		allow_methods GET POST PUT;
+		root ./file;
+		upload_path /post_file;
+		autoindex on;
+	}
+
+	location /big-upload {
+		allow_methods GET POST PUT;
+		root ./file;
+		upload_path /put_file;
+		autoindex on;
+	}
+
+	location /delete-files {
+		allow_methods GET DELETE;
+		root ./file/post_file;
+		autoindex on;
+	}
+
+	location /delete-cgi {
+		allow_methods DELETE;
+		root ./file;
+		index cgi-bin/delete.py;
+		cgi_pass /usr/bin/python3;
+		cgi_ext .py;
+	}
+
+	location /download {
+		allow_methods GET;
+		root ./file/post_file;
+		autoindex on;
+	}
+}
