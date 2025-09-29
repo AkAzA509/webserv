@@ -29,6 +29,7 @@ Response::Response(Request& req, int client_fd, Server& server) : m_server(&serv
 	cookie.value = session.id;
 	cookie.path = "/";
 	cookie.httpOnly = true;
+	cookie.secure = true;
 	cookie.expires = (getCurrentTimeMs() + server.getSessionTimeoutMs()) / 1000;
 
 	addCookie(cookie);
@@ -70,11 +71,11 @@ std::pair<std::string, std::string> Response::getError(int page, const std::stri
 std::string Response::selectCgiInterpreter(const Location& loc, const std::string& scriptName) {
 	size_t dot = scriptName.find_last_of('.');
 	std::string ext;
+
 	if (dot != std::string::npos)
 		ext = scriptName.substr(dot);
-	else {
+	else
 		return "";
-	}
 	std::vector<std::string> cgi_exts = loc.getCgiExt();
 	std::vector<std::string> cgi_passes = loc.getCgiPath();
 	std::string cgiPass;
@@ -85,9 +86,8 @@ std::string Response::selectCgiInterpreter(const Location& loc, const std::strin
 			break;
 		}
 	}
-	if (cgiPass.empty() && cgi_passes.size() == 1) {
+	if (cgiPass.empty() && cgi_passes.size() == 1)
 		return "";
-	}
 	if (cgiPass.empty()) {
 		setErrorResponse(500);
 		m_body = "CGI interpreter not configured for the script";
@@ -119,37 +119,35 @@ std::string Response::buildPath(const std::string& page_path) const {
 		if (loc_for_match.size() > 1 && loc_for_match[loc_for_match.size() - 1] == '/')
 			loc_for_match = loc_for_match.substr(0, loc_for_match.size() - 1);
 			
-		if (req_path.compare(0, loc_for_match.size(), loc_for_match) == 0) {
+		if (req_path.compare(0, loc_for_match.size(), loc_for_match) == 0)
 			req_path = req_path.substr(loc_for_match.size());
-		}
 	}
 
 	while (!req_path.empty() && req_path[0] == '/')
 		req_path = req_path.substr(1);
 	
 	bool endsWithSlash = (!req_path.empty() && req_path[req_path.size() - 1] == '/');
-	if (endsWithSlash) {
+	if (endsWithSlash)
 		req_path = req_path.substr(0, req_path.size() - 1);
-	}
 	
 	if (req_path.empty()) {
 		std::vector<std::string> locIndexes = location.getIndexFiles();
-		if (!locIndexes.empty()) {
+		if (!locIndexes.empty())
 			req_path = locIndexes[0];
-		} else {
+		else {
 			std::string uploadPath = location.getUploadPath();
 			while (!uploadPath.empty() && uploadPath[0] == '/')
 				uploadPath = uploadPath.substr(1);
 			req_path = uploadPath.empty() ? "." : uploadPath;
 		}
-	} else {
+	}
+	else {
 		std::string uploadPath = location.getUploadPath();
 		if (!uploadPath.empty() && req_path.find("cgi-bin/") != 0) {
 			while (!uploadPath.empty() && uploadPath[0] == '/')
 				uploadPath = uploadPath.substr(1);
-			if (!uploadPath.empty()) {
+			if (!uploadPath.empty())
 				req_path = joinPaths(uploadPath, req_path);
-			}
 		}
 	}
 
@@ -167,32 +165,30 @@ std::string Response::buildDirPath(const std::string& page_path) const {
 		if (loc_for_match.size() > 1 && loc_for_match[loc_for_match.size() - 1] == '/')
 			loc_for_match = loc_for_match.substr(0, loc_for_match.size() - 1);
 			
-		if (req_path.compare(0, loc_for_match.size(), loc_for_match) == 0) {
+		if (req_path.compare(0, loc_for_match.size(), loc_for_match) == 0)
 			req_path = req_path.substr(loc_for_match.size());
-		}
 	}
 
 	while (!req_path.empty() && req_path[0] == '/')
 		req_path = req_path.substr(1);
 	
 	bool endsWithSlash = (!req_path.empty() && req_path[req_path.size() - 1] == '/');
-	if (endsWithSlash) {
+	if (endsWithSlash)
 		req_path = req_path.substr(0, req_path.size() - 1);
-	}
 	
 	if (req_path.empty()) {
 		std::string uploadPath = location.getUploadPath();
 		while (!uploadPath.empty() && uploadPath[0] == '/')
 			uploadPath = uploadPath.substr(1);
 		req_path = uploadPath.empty() ? "." : uploadPath;
-	} else {
+	}
+	else {
 		std::string uploadPath = location.getUploadPath();
 		if (!uploadPath.empty() && req_path.find("cgi-bin/") != 0) {
 			while (!uploadPath.empty() && uploadPath[0] == '/')
 				uploadPath = uploadPath.substr(1);
-			if (!uploadPath.empty()) {
+			if (!uploadPath.empty())
 				req_path = joinPaths(uploadPath, req_path);
-			}
 		}
 	}
 

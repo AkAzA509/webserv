@@ -28,6 +28,7 @@
 #include <netdb.h>
 
 extern volatile sig_atomic_t sig;
+extern volatile bool g_sigok;
 
 #define MAX_EVENT 100
 

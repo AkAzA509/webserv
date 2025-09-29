@@ -78,6 +78,7 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 		buffer[query] = '\0';
 		client.request_buffer.append(buffer, query);
 		if (requestComplete(client.request_buffer)) {
+			Logger::log(YELLOW, "Request %s", client.request_buffer.c_str());
 			client.request_complete = true;
 			return true;
 		}
@@ -104,6 +105,7 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 // envoie la reponse au client
 void Server::sendClient(Response& response, int client_fd, int epfd, struct epoll_event ev) {
 	const std::string& resp_str = response.getFullResponse();
+
 
 	// Helper to toggle blocking mode
 	int flags = fcntl(client_fd, F_GETFL, 0);

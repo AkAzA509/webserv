@@ -17,6 +17,7 @@ if not path:
 try:
 	os.remove(f".{path}")
 	print(f"File deleted successfully.")
+	sys.exit(0)
 except FileNotFoundError:
 	print("Error file not found")
 except PermissionError:

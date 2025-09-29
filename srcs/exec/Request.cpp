@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/27 03:52:35 by macorso          ###   ########.fr       */
+/*   Updated: 2025/09/29 15:44:13 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -332,6 +332,8 @@ void Request::childProcess(int* pipe_out, int* pipe_in, bool hasBody, const std:
 	close(pipe_out[0]);
 	close(pipe_out[1]);
 
+	std::cerr << "Executing CGI script: " << scriptPath << std::endl;
+
 	if (hasBody) {
 		dup2(pipe_in[0], STDIN_FILENO);
 		close(pipe_in[1]);
@@ -363,10 +365,11 @@ void Request::childProcess(int* pipe_out, int* pipe_in, bool hasBody, const std:
 	execve(av[0], av, envp);
 	delete[] av;
 	delete[] envp;
+	std::cerr << "execve failed: " << strerror(errno) << std::endl;
 	exit(EXIT_FAILURE);
 }
 
-bool Request::parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::string& cgiOutput, pid_t pid) {
+void Request::parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::string& cgiOutput) {
 	close(pipe_out[1]);
 	if (hasBody)
 		close(pipe_in[0]);
@@ -392,39 +395,14 @@ bool Request::parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::stri
 		cgiOutput.append(buffer, bytes);
 
 	close(pipe_out[0]);
-	int status;
-
-	int ret = waitpid(pid, &status, 0);
-	if (ret == -1) {
-		Logger::log(RED, "waitpid failed for CGI: %s", strerror(errno));
-		return false;
-	}
-	if (!WIFEXITED(status)) {
-		if (WIFSIGNALED(status))
-			Logger::log(RED, "CGI script terminated by signal %d", WTERMSIG(status));
-		else
-			Logger::log(RED, "CGI script ended abnormally");
-		return false;
-	}
-	if (WEXITSTATUS(status) != 0) {
-		Logger::log(RED, "CGI script failed (exit status %d)", WEXITSTATUS(status));
-		return false;
-	}
-	return true;
 }
 
 bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string>& args, const std::vector<std::string>& extraEnv, std::string& cgiOutput) {
 	int pipe_out[2];
 	int pipe_in[2];
-	sigset_t sigchldMask;
-	sigset_t oldMask;
-	sigemptyset(&sigchldMask);
-	sigaddset(&sigchldMask, SIGCHLD);
-	sigprocmask(SIG_BLOCK, &sigchldMask, &oldMask);
 
 	if (pipe(pipe_out) == -1) {
 		Logger::log(RED, "pipe failed for CGI");
-		sigprocmask(SIG_SETMASK, &oldMask, NULL);
 		return false;
 	}
 
@@ -434,7 +412,6 @@ bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string
 		Logger::log(RED, "pipe_in failed for CGI");
 		close(pipe_out[0]);
 		close(pipe_out[1]);
-		sigprocmask(SIG_SETMASK, &oldMask, NULL);
 		return false;
 	}
 
@@ -447,21 +424,19 @@ bool Request::doCGI(const std::string& scriptPath, const std::vector<std::string
 			close(pipe_in[0]);
 			close(pipe_in[1]);
 		}
-		sigprocmask(SIG_SETMASK, &oldMask, NULL);
 		return false;
 	}
-	if (pid == 0) {
-		sigprocmask(SIG_SETMASK, &oldMask, NULL);
+	
+	if (pid == 0)
 		childProcess(pipe_out, pipe_in, hasBody, scriptPath, args, m_env, extraEnv);
-	}
 	else {
-		bool ok = parentProcess(pipe_out, pipe_in, hasBody, cgiOutput, pid);
-		sigprocmask(SIG_SETMASK, &oldMask, NULL);
-		if (!ok)
+		parentProcess(pipe_out, pipe_in, hasBody, cgiOutput);
+		if (!g_sigok) {
+			g_sigok = true;
 			return false;
+		}
 		return true;
 	}
-	sigprocmask(SIG_SETMASK, &oldMask, NULL);
 	return true;
 }
 
@@ -469,12 +444,11 @@ void Request::autoIndex(const std::string& customPath, const std::string& custom
 	std::string localPath;
 	std::string displayPath;
 	
-	// Si des paramètres personnalisés sont fournis, les utiliser
 	if (!customPath.empty()) {
 		localPath = customPath;
 		displayPath = customDisplayPath.empty() ? m_path : customDisplayPath;
-	} else {
-		// Comportement par défaut
+	}
+	else {
 		std::string root = m_loc.getRoot();
 		localPath = normalizePath(root + "/" + m_path);
 		displayPath = m_path;

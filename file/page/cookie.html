@@ -1,11 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Document</title>
+    <meta charset="UTF-8">
+	<link rel="stylesheet" href="/stylesheet/cookie_style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion avec Cookies</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, button, select {
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
-	<h1>Lorem, ipsum dolor sit amet consectetur adipisicing elit. Tenetur quae, neque similique impedit molestiae debitis doloremque, ratione assumenda consequuntur earum optio? Necessitatibus laudantium est aperiam quibusdam deserunt quo, veritatis maiores.</h1>
+    <h1>Connexion avec Cookies</h1>
+
+    <div id="notification" style="display: none; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; background-color: #f9f9f9;"></div>
+
+    <div id="loginContainer" class="container">
+        <h2>Se connecter</h2>
+        <label for="username">Nom d'utilisateur :</label>
+        <input type="text" id="username" placeholder="Entrez votre nom d'utilisateur">
+        <button onclick="login()">Se connecter</button>
+    </div>
+
+    <div id="welcomeContainer" class="container" style="display: none;">
+        <h2>Bienvenue</h2>
+        <p id="welcomeMessage"></p>
+        <button onclick="logout()">Se déconnecter</button>
+    </div>
+
+    <div id="colorContainer" class="container" style="display: none;">
+        <h2>Personnalisez votre arrière-plan</h2>
+        <label for="backgroundColor">Choisissez une couleur :</label>
+        <select id="backgroundColor">
+            <option value="white">Blanc</option>
+            <option value="red">Rouge</option>
+            <option value="blue">Bleu</option>
+            <option value="green">Vert</option>
+            <option value="yellow">Jaune</option>
+            <option value="purple">Violet</option>
+        </select>
+        <button onclick="setBackgroundColor()">Définir la couleur</button>
+    </div>
+
+    <script>
+        // Vérifie si un cookie "username" existe au chargement de la page
+        window.onload = function() {
+            const username = getCookie('username');
+            const backgroundColor = getCookie('backgroundColor');
+            if (backgroundColor) {
+                document.body.style.backgroundColor = backgroundColor;
+            }
+            if (username) {
+                showWelcome(username);
+            } else {
+                showLogin();
+            }
+        };
+
+        // Affiche un message dans la zone de notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+
+            // Cache la notification après 3 secondes
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        }
+
+        // Fonction pour se connecter
+        function login() {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                showNotification('Veuillez entrer un nom d\'utilisateur.');
+                return;
+            }
+
+            // Crée un cookie pour l'utilisateur
+            document.cookie = `username=${username}; path=/;`;
+            showNotification(`Bienvenue, ${username}!`);
+            showWelcome(username);
+        }
+
+        // Fonction pour se déconnecter
+        function logout() {
+            // Supprime les cookies
+            document.cookie = 'username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'backgroundColor=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.body.style.backgroundColor = 'white';
+            showNotification('Vous avez été déconnecté.');
+            showLogin();
+        }
+
+        // Fonction pour définir la couleur de l'arrière-plan
+        function setBackgroundColor() {
+            const color = document.getElementById('backgroundColor').value;
+            document.body.style.backgroundColor = color;
+            document.cookie = `backgroundColor=${color}; path=/;`;
+            showNotification(`Couleur de l'arrière-plan définie sur ${color}.`);
+        }
+
+        // Affiche l'interface de connexion
+        function showLogin() {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('welcomeContainer').style.display = 'none';
+            document.getElementById('colorContainer').style.display = 'none';
+        }
+
+        // Affiche le message de bienvenue et l'interface de personnalisation
+        function showWelcome(username) {
+            document.getElementById('welcomeMessage').textContent = `Bonjour, ${username}!`;
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('welcomeContainer').style.display = 'block';
+            document.getElementById('colorContainer').style.display = 'block';
+        }
+
+        // Fonction pour lire un cookie
+        function getCookie(name) {
+            const cookies = document.cookie.split('; ');
+            const cookie = cookies.find(c => c.startsWith(`${name}=`));
+            return cookie ? cookie.split('=')[1] : null;
+        }
+    </script>
 </body>
 </html>

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: macorso <macorso@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/21 12:03:36 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/27 01:43:03 by macorso          ###   ########.fr       */
+/*   Updated: 2025/09/29 15:38:05 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,7 +97,7 @@ public:
 
 	void autoIndex(const std::string& customPath = "", const std::string& customDisplayPath = "");
 	std::vector<std::string> convertEnv();
-	bool parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::string& cgiOutput, pid_t pid);
+	void parentProcess(int* pipe_out, int* pipe_in, bool hasBody, std::string& cgiOutput);
 	void childProcess(int* pipe_out, int* pipe_in, bool hasBody, const std::string& scriptPath, const std::vector<std::string>& args, char** m_env, const std::vector<std::string>& extraEnv);
 	void parseBody(const std::string& request);
 	void parseContentDispo(const std::string& line, BinaryInfo& outBinInfo);
