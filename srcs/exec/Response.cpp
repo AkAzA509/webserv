@@ -210,7 +210,6 @@ std::vector<std::string> Response::getLocationOrServerIndexes() const {
 }
 
 std::string Response::getFullResponse() const {
-	// Construit les headers comme string
 	std::string headers = m_firstline;
 
 	std::string contentType;
@@ -232,8 +231,7 @@ std::string Response::getFullResponse() const {
 		headers += it->first + ": " + it->second + "\r\n";
 
 	headers += "\r\n";
-	
-	// Concatène directement headers + body pour préserver les données binaires
+
 	std::string response;
 	response.reserve(headers.size() + m_body.size());
 	response.append(headers);
@@ -448,9 +446,8 @@ void Response::handleDelete() {
 	
 	std::string mappedPath = buildPath(urlDecode(m_request->getPath()));
 	std::string filePath = mappedPath;
-	if (filePath.size() >= 2 && filePath[0] == '.' && filePath[1] == '/') {
+	if (filePath.size() >= 2 && filePath[0] == '.' && filePath[1] == '/')
 		filePath = filePath.substr(1);
-	}
 	
 	std::vector<std::string> args;
 	args.push_back(scriptPath);

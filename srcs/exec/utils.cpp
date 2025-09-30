@@ -58,8 +58,6 @@ bool Location::isAllowedMethod(const std::string& method) const {
 	return false;
 }
 
-
-
 unsigned long hash(int x) {
 	return static_cast<u_long>(x * 2654435761UL);
 }

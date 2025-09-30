@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/05 17:43:51 by ggirault          #+#    #+#             */
-/*   Updated: 2025/09/29 15:44:13 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/09/30 17:21:23 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -255,18 +255,14 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 		std::string normalized_loc = loc_path;
 		std::string normalized_path = m_path;
 
-		if (normalized_loc.size() > 1 && normalized_loc[normalized_loc.size() - 1] == '/') {
+		if (normalized_loc.size() > 1 && normalized_loc[normalized_loc.size() - 1] == '/')
 			normalized_loc = normalized_loc.substr(0, normalized_loc.size() - 1);
-		}
 		
-		if (normalized_path != "/" && normalized_path[normalized_path.size() - 1] != '/') {
+		if (normalized_path != "/" && normalized_path[normalized_path.size() - 1] != '/')
 			normalized_path += "/";
-		}
-		
-		// Check si le path commence par la location OU si c'est un match exact
+
 		bool matches = false;
 		if (normalized_path.compare(0, normalized_loc.size(), normalized_loc) == 0) {
-			// Vérifie que c'est un vrai préfixe (suivi de '/' ou fin de chaîne)
 			if (normalized_path.size() == normalized_loc.size() || 
 				normalized_path[normalized_loc.size()] == '/') {
 				matches = true;
@@ -281,15 +277,12 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 	}
 
 	if (!best_match) {
-		// Cherche la location racine "/"
 		for (size_t i = 0; i < locations.size(); i++) {
 			if (locations[i].getPath() == "/") {
 				best_match = &locations[i];
 				break;
 			}
 		}
-		
-		// Si même la location "/" n'existe pas, erreur 404
 		if (!best_match) {
 			setError(E_ERROR_404);
 			return;
@@ -301,8 +294,6 @@ void Request::parseHeader(const std::string& request, const Server& server) {
 
 	if (m_loc.isAutoIndexOn())
 		m_isAutoIndex = true;
-
-	
 }
 
 std::string Request::getHeader(const std::string& key) const {
@@ -318,8 +309,6 @@ void Request::setError(int error_code) {
 	m_iserrorPage = true;
 }
 
-
-
 std::vector<std::string> Request::convertEnv() {
 	std::vector<std::string> env;
 	for (size_t i = 0; m_env[i]; i++)
@@ -331,8 +320,6 @@ void Request::childProcess(int* pipe_out, int* pipe_in, bool hasBody, const std:
 	dup2(pipe_out[1], STDOUT_FILENO);
 	close(pipe_out[0]);
 	close(pipe_out[1]);
-
-	std::cerr << "Executing CGI script: " << scriptPath << std::endl;
 
 	if (hasBody) {
 		dup2(pipe_in[0], STDIN_FILENO);
@@ -365,7 +352,6 @@ void Request::childProcess(int* pipe_out, int* pipe_in, bool hasBody, const std:
 	execve(av[0], av, envp);
 	delete[] av;
 	delete[] envp;
-	std::cerr << "execve failed: " << strerror(errno) << std::endl;
 	exit(EXIT_FAILURE);
 }
 

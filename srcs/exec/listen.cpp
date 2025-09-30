@@ -72,13 +72,12 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 
 	ssize_t query = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
 
-
 	if (query > 0) {
 		client.last_activity = getCurrentTimeMs();
 		buffer[query] = '\0';
 		client.request_buffer.append(buffer, query);
 		if (requestComplete(client.request_buffer)) {
-			Logger::log(YELLOW, "Request %s", client.request_buffer.c_str());
+			// Logger::log(YELLOW, "Request %s", client.request_buffer.c_str());
 			client.request_complete = true;
 			return true;
 		}
@@ -106,22 +105,18 @@ bool Server::recvClient(int epfd, struct epoll_event ev, int client_fd) {
 void Server::sendClient(Response& response, int client_fd, int epfd, struct epoll_event ev) {
 	const std::string& resp_str = response.getFullResponse();
 
-
-	// Helper to toggle blocking mode
 	int flags = fcntl(client_fd, F_GETFL, 0);
 	bool wasNonBlocking = (flags != -1) && (flags & O_NONBLOCK);
-	if (wasNonBlocking) {
+	if (wasNonBlocking)
 		fcntl(client_fd, F_SETFL, flags & ~O_NONBLOCK);
-	}
 
 	const char* buf;
 	size_t len;
 	std::string const* src;
-	if (m_forcedResponse.empty()) {
+	if (m_forcedResponse.empty())
 		src = &resp_str;
-	} else {
+	else
 		src = &m_forcedResponse;
-	}
 	buf = src->c_str();
 	len = src->size();
 
@@ -140,13 +135,11 @@ void Server::sendClient(Response& response, int client_fd, int epfd, struct epol
 		break;
 	}
 
-	// Restore original flags
-	if (wasNonBlocking) {
+	if (wasNonBlocking)
 		fcntl(client_fd, F_SETFL, flags);
-	}
 
 	if (totalSent < len) {
-		// Failed to send everything; close client
+		Logger::log(RED, "Failed to send all response to the client");
 		cleanupClient(epfd, client_fd, ev);
 		return;
 	}
@@ -222,9 +215,8 @@ void Server::checkTimeouts(int epfd) {
 		int client_fd = it->first;
 		const ClientState& client = it->second;
 
-		if (!client.request_complete && now_ms - client.last_activity > m_timeout) {
+		if (!client.request_complete && now_ms - client.last_activity > m_timeout)
 			clients_to_timeout.push_back(client_fd);
-		}
 	}
 
 	for (size_t i = 0; i < clients_to_timeout.size(); ++i) {
