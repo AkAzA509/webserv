@@ -13,7 +13,7 @@ server {
 		autoindex on;
 	}
 	
-	location /static {
+	location /stylesheet {
 		root ./file/stylesheet;
 		allow_methods GET;
 		autoindex on;

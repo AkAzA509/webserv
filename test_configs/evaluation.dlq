@@ -14,20 +14,17 @@ server {
 	error_page 413 error_pages/413.html;
 	error_page 500 error_pages/500.html;
 
-	# Test autoindex et méthodes
 	location / {
 		allow_methods GET POST;
 		autoindex on;
 	}
 
-	# Test static files
 	location /static {
 		root ./file/stylesheet;
 		allow_methods GET;
 		autoindex on;
 	}
 
-	# Test CGI bash
 	location /cgi-bin {
 		root ./file/cgi-bin;
 		allow_methods GET POST;
@@ -37,7 +34,6 @@ server {
 		cgi_ext .sh;
 	}
 
-	# Test upload POST
 	location /upload-post {
 		allow_methods GET POST;
 		root ./file;
@@ -45,7 +41,6 @@ server {
 		autoindex on;
 	}
 
-	# Test upload PUT
 	location /upload-put {
 		allow_methods GET PUT;
 		root ./file;
@@ -53,14 +48,15 @@ server {
 		autoindex on;
 	}
 
-	# Test DELETE
 	location /delete {
 		allow_methods GET DELETE;
-		root ./file/put_file;
+		root ./file;
 		autoindex on;
+		index cgi-bin/delete.py;
+		cgi_pass /usr/bin/python3;
+		cgi_ext .py;
 	}
 
-	# Test return/redirect
 	location /redirect-test {
 		allow_methods GET POST;
 		root ./file;
@@ -68,7 +64,6 @@ server {
 		return /;
 	}
 
-	# Test cookies/sessions
 	location /cookie {
 		root ./file/page;
 		allow_methods GET POST;

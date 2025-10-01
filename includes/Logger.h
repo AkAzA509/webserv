@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/09 15:24:48 by macorso           #+#    #+#             */
-/*   Updated: 2025/09/16 16:18:44 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/10/01 11:24:59 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 #include <cstdarg>
 
 #define RESET          "\x1B[0m"
+#define GREEN          "\x1B[32m"
 #define RED            "\x1B[31m"
 #define LIGHT_RED      "\x1B[91m"
 #define WHITE          "\x1B[37m"

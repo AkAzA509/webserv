@@ -127,10 +127,6 @@ void Server::sendClient(Response& response, int client_fd, int epfd, struct epol
 			totalSent += static_cast<size_t>(n);
 			continue;
 		}
-		// if (n == -1 && errno == EINTR)
-		// 	continue;
-		// if (n == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
-		// 	continue; // should not happen in blocking mode, but just in case
 		Logger::log(RED, "send error: %s", strerror(errno));
 		break;
 	}
@@ -183,6 +179,7 @@ void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_eve
 			char ip_buffer[INET_ADDRSTRLEN];
 			if (inet_ntop(AF_INET, &client_addr.sin_addr, ip_buffer, sizeof(ip_buffer)))
 				m_clients[client_fd].client_ip = ip_buffer;
+			Logger::log(GREEN, "New client connected from %s on fd %d", ip_buffer, client_fd);
 		}
 		else {
 			if (recvClient(epfd, ev[i], fd)) {

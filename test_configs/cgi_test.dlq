@@ -35,10 +35,16 @@ server {
 	location /upload-cgi {
 		allow_methods GET POST PUT DELETE;
 		root ./file;
-		upload_path /put_file;
 		autoindex on;
 		index cgi-bin/delete.py;
 		cgi_pass /usr/bin/python3;
 		cgi_ext .py;
+	}
+
+	location /upload {
+		allow_methods GET POST PUT;
+		root ./file;
+		upload_path /put_file;
+		autoindex on;
 	}
 }

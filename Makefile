@@ -1,6 +1,6 @@
 ### COMPILATION OPTIONS ###
 CXX       = c++
-CXXFLAGS  = -Wall -Wextra -Werror -std=c++98 -g3 -fsanitize=address,leak  
+CXXFLAGS  = -Wall -Wextra -Werror -std=c++98 -g3 #-fsanitize=address,leak  
 CXXFLAGSDEV  = -Wall -Wextra -Werror -std=c++98 -fsanitize=address,leak -g3
 LDFLAGS   = -Iincludes
 
@@ -43,7 +43,7 @@ all: $(TARGET)
 dev: $(TARGETDEV)
 
 $(TARGET): $(OBJS)
-	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(BIN_DIR) ./file/put_file ./file/post_file
 	@echo "$(PURPLE)→ Linking production binary...$(RESET)"
 	@$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
 	@echo "$(GREEN)✔ Production build done!$(RESET)"
