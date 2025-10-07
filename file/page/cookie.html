@@ -55,7 +55,6 @@
     </div>
 
     <script>
-        // Vérifie si un cookie "username" existe au chargement de la page
         window.onload = function() {
             const username = getCookie('username');
             const backgroundColor = getCookie('backgroundColor');
@@ -69,19 +68,16 @@
             }
         };
 
-        // Affiche un message dans la zone de notification
         function showNotification(message) {
             const notification = document.getElementById('notification');
             notification.textContent = message;
             notification.style.display = 'block';
 
-            // Cache la notification après 3 secondes
             setTimeout(() => {
                 notification.style.display = 'none';
             }, 2000);
         }
 
-        // Fonction pour se connecter
         function login() {
             const username = document.getElementById('username').value;
             if (!username) {
@@ -89,15 +85,12 @@
                 return;
             }
 
-            // Crée un cookie pour l'utilisateur
             document.cookie = `username=${username}; path=/;`;
             showNotification(`Bienvenue, ${username}!`);
             showWelcome(username);
         }
 
-        // Fonction pour se déconnecter
         function logout() {
-            // Supprime les cookies
             document.cookie = 'username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             document.cookie = 'backgroundColor=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
             document.body.style.backgroundColor = 'white';
@@ -105,7 +98,6 @@
             showLogin();
         }
 
-        // Fonction pour définir la couleur de l'arrière-plan
         function setBackgroundColor() {
             const color = document.getElementById('backgroundColor').value;
             document.body.style.backgroundColor = color;
@@ -113,14 +105,12 @@
             showNotification(`Couleur de l'arrière-plan définie sur ${color}.`);
         }
 
-        // Affiche l'interface de connexion
         function showLogin() {
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('welcomeContainer').style.display = 'none';
             document.getElementById('colorContainer').style.display = 'none';
         }
 
-        // Affiche le message de bienvenue et l'interface de personnalisation
         function showWelcome(username) {
             document.getElementById('welcomeMessage').textContent = `Bonjour, ${username}!`;
             document.getElementById('loginContainer').style.display = 'none';
@@ -128,7 +118,6 @@
             document.getElementById('colorContainer').style.display = 'block';
         }
 
-        // Fonction pour lire un cookie
         function getCookie(name) {
             const cookies = document.cookie.split('; ');
             const cookie = cookies.find(c => c.startsWith(`${name}=`));

@@ -6,7 +6,7 @@
 /*   By: ggirault <ggirault@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: Invalid date        by                   #+#    #+#             */
-/*   Updated: 2025/09/25 15:00:40 by ggirault         ###   ########.fr       */
+/*   Updated: 2025/10/07 10:45:21 by ggirault         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,7 +41,7 @@ std::vector<std::string> split(const std::string& str, const std::string& sep)
 		start = end + sep.length();
 	}
 	if (start < end && !str.substr(start).empty())
-		result.push_back(str.substr(start)); // add the last part
+		result.push_back(str.substr(start));
 	return result;
 
 }
@@ -202,7 +202,6 @@ bool satoi(const std::string& str, int& result)
 	errno = 0;
 	long tmp = strtol(str.c_str(), &endptr, 10);
 
-	// Check for conversion errors
 	if (*endptr != '\0') return false;
 	if (errno == ERANGE) return false;
 	if (tmp > std::numeric_limits<int>::max() || tmp < std::numeric_limits<int>::min()) return false;
@@ -304,7 +303,6 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 	size_t brace_level = 0;
 	size_t start_line = index;
 
-	// Extract location path
 	size_t path_start = loc_line.find(' ');
 	size_t path_end = loc_line.find('{');
 	if (path_start == std::string::npos || path_end == std::string::npos)
@@ -329,13 +327,11 @@ Location Parser::parseLocationBlock(const std::vector<std::string>& lines, size_
 			if (c == '}') brace_level--;
 		}
 
-		// Skip comments
 		if (line[0] == '#') continue;
 
 		if (index == start_line + 1 && line == "{")
 			continue;
 
-		// End of location block
 		if (brace_level == 0) break;
 
 		if (line.find(';') != std::string::npos)
@@ -572,7 +568,6 @@ Server Parser::parseServer(const std::string& data, char **ep) const
 			else if (dir.name == "root") {
 				server_root = parseRoot(dir);
 				server.setRoot(server_root);
-				// Logger::log(RED, "Parsed Root: %s\n", server.getRoot().c_str());
 			}
 			else if (dir.name == "index") {
 				server_index_files.clear();

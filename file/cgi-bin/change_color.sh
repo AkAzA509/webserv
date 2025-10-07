@@ -1,19 +1,15 @@
 #!/bin/bash
 
-# Lire les données d'entrée de la requête POST
 read -r input
 
-# Extraire la valeur de la couleur à partir des données d'entrée
 color=$(echo "$input" | sed -n 's/.*color=\([^&]*\).*/\1/p')
 
-# Décode l'encodage URL (remplace les + par des espaces et les %xx par leur caractère ASCII)
 color=$(echo "$color" | sed 's/+/ /g;s/%/\\x/g')
 
 if [ "$color" = "rainbow" ]; then
   color="linear-gradient(90deg, red, orange, yellow, green, cyan, blue, violet)"
 fi
 
-# Générer la page HTML avec la couleur de fond sélectionnée
 cat << EOF
 <!DOCTYPE html>
 <html lang="fr">

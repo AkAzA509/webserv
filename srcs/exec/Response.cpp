@@ -241,7 +241,6 @@ std::string Response::getFullResponse() const {
 }
 
 void Response::handleGet() {
-	// const Location& location = m_request->getLocation();
 	std::string requestPath = m_request->getPath();
 	
 	bool endsWithSlash = (requestPath.size() > 1 && requestPath[requestPath.size() - 1] == '/');

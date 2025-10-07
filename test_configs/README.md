@@ -3,7 +3,6 @@
 ## 📋 Guide d'utilisation
 
 ```bash
-# Utiliser une config de test
 ./bin/webserv test_configs/[nom_config].dlq
 ```
 
