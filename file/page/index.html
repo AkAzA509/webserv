@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>WebServ</title>
+  <link rel="stylesheet" href="stylesheet/style.css">
+</head>
+<body>
+  <h1>Voici notre site pour tester WebServ</h1>
+
+  <section>
+    <h2>Test cookie</h2>
+    <button onclick="window.location.href='/page/cookie.html'">Login page</button>
+  </section>
+
+  <section>
+    <h2>POST</h2>
+    <form action="/post_file/" method="POST" enctype="multipart/form-data">
+      <input type="file" name="file" required>
+      <button type="submit">Envoyer POST</button>
+    </form>
+    <button onclick="showDeleteList('/post_file/')">Supprimer un fichier dans /post_file</button>
+  </section>
+
+  <section>
+    <h2>Télécharger un fichier</h2>
+    <button onclick="showDownloadList('/post_file/')">Fichiers à télécharger depuis post_file</button>
+    <div id="downloadList"></div>
+  </section>
+
+  <div class="container">
+    <h2>Select a Color to Change the Page Background</h2>
+  <form action="/cgi-bin/change_color.sh" method="post">
+        <label for="color">Choose a color:</label>
+        <select id="color" name="color">
+            <option value="red">Red</option>
+            <option value="blue">Blue</option>
+            <option value="green">Green</option>
+            <option value="yellow">Yellow</option>
+            <option value="purple">Purple</option>
+            <option value="rainbow">Rainbow</option>
+        </select>
+        <br><br>
+        <input class="button" type="submit" value="Submit">
+    </form>
+  </div>
+
+  <section>
+    <h2>PUT</h2>
+    <input type="file" id="putFile" required>
+    <button onclick="sendMultipartPut()">Envoyer PUT</button>
+    <button onclick="showDeleteList('/put_file/')">Supprimer un fichier dans /put_file</button>
+  </section>
+  <section>
+    <h2>Résultat</h2>
+    <pre id="result">Aucune requête encore envoyée.</pre>
+  </section>
+
+  <script>
+  async function showDeleteList(location) {
+    const res = await fetch(location);
+    if (!res.ok) {
+      const text = await res.text();
+      document.getElementById('result').textContent =
+      `Erreur ${res.status} ${res.statusText}\n\n${text}`;
+      return;
+    }
+    const html = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const links = Array.from(doc.querySelectorAll("a"))
+      .filter(a => a.getAttribute("href") && a.getAttribute("href") !== "../");
+
+    let listHtml = "<ul>";
+    for (const link of links) {
+      const filename = link.getAttribute("href");
+      listHtml += `<li>${filename} <button onclick="deleteFile('${location}${encodeURIComponent(filename)}')">Supprimer</button></li>`;
+    }
+    listHtml += "</ul>";
+    document.getElementById('result').innerHTML = listHtml;
+  }
+
+  function deleteFile(url) {
+    fetch(url, { method: 'DELETE' })
+      .then(async res => {
+        const text = await res.text();
+        document.getElementById('result').textContent =
+          `DELETE ${res.status} ${res.statusText}\n\n`;
+      })
+      .catch(err => {
+        document.getElementById('result').textContent = 'Erreur : ' + err;
+      });
+  }
+
+  function sendRequest(method) {
+    fetch('/', { method: method })
+      .then(async res => {
+        const text = await res.text();
+        document.getElementById('result').textContent =
+          `${method} ${res.status} ${res.statusText}\n\n${text}`;
+      })
+      .catch(err => {
+        document.getElementById('result').textContent = 'Erreur : ' + err;
+      });
+  }
+
+  function sendMultipartPut() {
+    const fileInput = document.getElementById('putFile');
+    const file = fileInput.files[0];
+    if (!file) {
+      alert('Aucun fichier sélectionné');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/put_file/', {
+      method: 'PUT',
+      body: formData
+    })
+    .then(async res => {
+      const text = await res.text();
+      document.getElementById('result').textContent =
+        `PUT ${res.status} ${res.statusText}\n\n${text}`;
+    })
+    .catch(err => {
+      document.getElementById('result').textContent = 'Erreur : ' + err;
+    });
+  }
+
+  async function showDownloadList(location) {
+    const res = await fetch(location);
+    if (!res.ok) {
+      document.getElementById('downloadList').textContent =
+        `Erreur ${res.status} ${res.statusText}`;
+      return;
+    }
+    const html = await res.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const links = Array.from(doc.querySelectorAll("a"))
+      .filter(a => a.getAttribute("href") && a.getAttribute("href") !== "../");
+
+    if (links.length === 0) {
+      document.getElementById('downloadList').innerHTML = "<p>Aucun fichier à télécharger.</p>";
+      return;
+    }
+
+    let listHtml = "<ul>";
+    for (const link of links) {
+      const filename = link.getAttribute("href");
+      listHtml += `<li>
+        <a href="${location}${encodeURIComponent(filename)}" download="${filename}">Télécharger ${filename}</a>
+      </li>`;
+    }
+    listHtml += "</ul>";
+    document.getElementById('downloadList').innerHTML = listHtml;
+  }
+  </script>
+</body>
+</html>

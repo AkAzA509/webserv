@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+	<link rel="stylesheet" href="/stylesheet/cookie_style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion avec Cookies</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, button, select {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Connexion avec Cookies</h1>
+
+    <div id="notification" style="display: none; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; background-color: #f9f9f9;"></div>
+
+    <div id="loginContainer" class="container">
+        <h2>Se connecter</h2>
+        <label for="username">Nom d'utilisateur :</label>
+        <input type="text" id="username" placeholder="Entrez votre nom d'utilisateur">
+        <button onclick="login()">Se connecter</button>
+    </div>
+
+    <div id="welcomeContainer" class="container" style="display: none;">
+        <h2>Bienvenue</h2>
+        <p id="welcomeMessage"></p>
+        <button onclick="logout()">Se déconnecter</button>
+    </div>
+
+    <div id="colorContainer" class="container" style="display: none;">
+        <h2>Personnalisez votre arrière-plan</h2>
+        <label for="backgroundColor">Choisissez une couleur :</label>
+        <select id="backgroundColor">
+            <option value="white">Blanc</option>
+            <option value="red">Rouge</option>
+            <option value="blue">Bleu</option>
+            <option value="green">Vert</option>
+            <option value="yellow">Jaune</option>
+            <option value="purple">Violet</option>
+        </select>
+        <button onclick="setBackgroundColor()">Définir la couleur</button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            const username = getCookie('username');
+            const backgroundColor = getCookie('backgroundColor');
+            if (backgroundColor) {
+                document.body.style.backgroundColor = backgroundColor;
+            }
+            if (username) {
+                showWelcome(username);
+            } else {
+                showLogin();
+            }
+        };
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 2000);
+        }
+
+        function login() {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                showNotification('Veuillez entrer un nom d\'utilisateur.');
+                return;
+            }
+
+            document.cookie = `username=${username}; path=/;`;
+            showNotification(`Bienvenue, ${username}!`);
+            showWelcome(username);
+        }
+
+        function logout() {
+            document.cookie = 'username=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'backgroundColor=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.body.style.backgroundColor = 'white';
+            showNotification('Vous avez été déconnecté.');
+            showLogin();
+        }
+
+        function setBackgroundColor() {
+            const color = document.getElementById('backgroundColor').value;
+            document.body.style.backgroundColor = color;
+            document.cookie = `backgroundColor=${color}; path=/;`;
+            showNotification(`Couleur de l'arrière-plan définie sur ${color}.`);
+        }
+
+        function showLogin() {
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('welcomeContainer').style.display = 'none';
+            document.getElementById('colorContainer').style.display = 'none';
+        }
+
+        function showWelcome(username) {
+            document.getElementById('welcomeMessage').textContent = `Bonjour, ${username}!`;
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('welcomeContainer').style.display = 'block';
+            document.getElementById('colorContainer').style.display = 'block';
+        }
+
+        function getCookie(name) {
+            const cookies = document.cookie.split('; ');
+            const cookie = cookies.find(c => c.startsWith(`${name}=`));
+            return cookie ? cookie.split('=')[1] : null;
+        }
+    </script>
+</body>
+</html>
