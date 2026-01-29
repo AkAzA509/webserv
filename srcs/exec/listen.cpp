@@ -143,66 +143,6 @@ void Server::sendClient(Response& response, int client_fd, int epfd, struct epol
 	m_clients[client_fd].last_activity = getCurrentTimeMs();
 }
 
-// Accepte les nouvelles connexions et gere les clients existants
-void Server::acceptClient(int ready, std::vector<int> socketFd, struct epoll_event *ev, int epfd) {
-	for (int i = 0; i < ready; i++) {
-		int fd = ev[i].data.fd;
-
-		if (std::find(socketFd.begin(), socketFd.end(), fd) != socketFd.end()) {
-			struct sockaddr_in client_addr;
-			socklen_t client_len = sizeof(client_addr);
-
-			int client_fd = accept(fd, (struct sockaddr*)&client_addr, &client_len);
-			if (client_fd < 0) {
-				if (errno == EAGAIN || errno == EWOULDBLOCK)
-					break;
-				else if (errno == EINTR)
-					continue;
-				else {
-					perror("accept failed");
-					break;
-				}
-			}
-			int flags = fcntl(client_fd, F_GETFL, 0);
-			if (flags != -1)
-				fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
-			
-			struct epoll_event client_ev;
-			client_ev.events = EPOLLIN;
-			client_ev.data.fd = client_fd;
-			if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &client_ev) < 0) {
-				perror("epoll_ctl add client failed");
-				close(client_fd);
-				continue;
-			}
-			m_clients[client_fd] = ClientState();
-			char ip_buffer[INET_ADDRSTRLEN];
-			if (inet_ntop(AF_INET, &client_addr.sin_addr, ip_buffer, sizeof(ip_buffer)))
-				m_clients[client_fd].client_ip = ip_buffer;
-			Logger::log(GREEN, "New client connected from %s on fd %d", ip_buffer, client_fd);
-		}
-		else {
-			if (recvClient(epfd, ev[i], fd)) {
-				std::string request = m_clients[fd].request_buffer;
-				if (!request.empty()) {
-					try {
-						Request req(*this, request, m_ep);
-						Response resp(req, fd, *this);
-						sendClient(resp, fd, epfd, ev[i]);
-					} catch (const std::exception& e) {
-						Logger::log(RED, "Error processing request: %s", e.what());
-						Response resp;
-						resp.setErrorResponse(500);
-						sendClient(resp, fd, epfd, ev[i]);
-					}
-				}
-				cleanupClient(epfd, fd, ev[i]);
-			}
-		}
-	}
-	checkTimeouts(epfd);
-}
-
 void Server::checkTimeouts(int epfd) {
 	unsigned long now_ms = getCurrentTimeMs();
 	cleanupSessions(now_ms);
@@ -227,96 +167,50 @@ void Server::checkTimeouts(int epfd) {
 	}
 }
 
-void Server::waitConnection() {
-	int epfd = epoll_create(10);
-	if (epfd < 0) {
-		print_error("epoll creation failed", -1);
-		return;
-	}
-
-	for (size_t i = 0; i < m_socketFd.size(); ++i) {
-		struct epoll_event ev;
-		ev.events = EPOLLIN;
-		ev.data.fd = m_socketFd[i];
-		if (epoll_ctl(epfd, EPOLL_CTL_ADD, m_socketFd[i], &ev) < 0) {
-			print_error("epoll_ctl add server failed", m_socketFd[i]);
-			close(epfd);
-			return;
-		}
-	}
-
-	signal(SIGINT, sigint_handler);
-	signal(SIGTERM, sigterm_handler);
-	signal(SIGPIPE, sigpipe_handler);
-	signal(SIGCHLD, sigchld_handler);
-	while(sig == 0) {
-		struct epoll_event ev[MAX_EVENT];
-		int ready = epoll_wait(epfd, ev, MAX_EVENT, 1000);
-		
-		if (ready == -1) {
-			if (errno == EINTR)
-				continue;
-			perror("epoll_wait failed");
-			break;
-		}
-		if (ready > 0)
-			acceptClient(ready, m_socketFd, ev, epfd);
-	}
-
-	for (std::map<int, ClientState>::iterator it = m_clients.begin(); it != m_clients.end(); ++it)
-		close(it->first);
-	for (size_t i = 0; i < m_socketFd.size(); ++i)
-		close(m_socketFd[i]);
-	close(epfd);
-}
-
 void Server::setupSocket() {
 	int opt = 1;
 
 	for (size_t i = 0; i < m_port.size() && !sig; ++i) {
-
 		addrinfo hints, *res;
 
 		std::memset(&hints, 0, sizeof(hints));
 		hints.ai_family = AF_INET;
 		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_flags = AI_PASSIVE;
+		hints.ai_flags = 0;
 
 		std::stringstream ss;
-
 		ss << m_port[i];
 
 		int status = getaddrinfo(m_hostIp.c_str(), ss.str().c_str(), &hints, &res);
 
 		if (status != 0) {
-			std::cerr << "getaddrinfo error: " << gai_strerror(status) << std::endl;
+			Logger::log(RED, "getaddrinfo error for %s:%s: %s", m_hostIp.c_str(), ss.str().c_str(), gai_strerror(status));
 			continue;
 		}
 
 		int sock_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 		if (sock_fd < 0) {
-			print_error("socket creation failed", -1);
+			Logger::log(RED, "socket creation failed for %s:%s", m_hostIp.c_str(), ss.str().c_str());
 			freeaddrinfo(res);
 			continue;
 		}
 
 		if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-			print_error("setsockopt failed", sock_fd);
+			Logger::log(RED, "setsockopt failed for %s:%s", m_hostIp.c_str(), ss.str().c_str());
 			close(sock_fd);
 			freeaddrinfo(res);
 			continue;
 		}
-		
+
 		if (bind(sock_fd, res->ai_addr, res->ai_addrlen) == -1) {
-			freeaddrinfo(res);
-			perror("bind failed");
-			print_error("bind failed", sock_fd);
+			Logger::log(RED, "bind failed for %s:%s: %s", m_hostIp.c_str(), ss.str().c_str(), strerror(errno));
 			close(sock_fd);
+			freeaddrinfo(res);
 			continue;
 		}
 
 		if (listen(sock_fd, SOMAXCONN)) {
-			print_error("listen failed", sock_fd);
+			Logger::log(RED, "listen failed for %s:%s", m_hostIp.c_str(), ss.str().c_str());
 			close(sock_fd);
 			freeaddrinfo(res);
 			continue;
@@ -324,5 +218,84 @@ void Server::setupSocket() {
 
 		freeaddrinfo(res);
 		m_socketFd.push_back(sock_fd);
+		Logger::log(GREEN, "Socket setup successful on IP %s and port %s", m_hostIp.c_str(), ss.str().c_str());
+	}
+}
+
+// Vérifie si ce serveur possède le file descriptor donne
+bool Server::ownsFd(int fd) const {
+	for (size_t i = 0; i < m_socketFd.size(); ++i) {
+		if (m_socketFd[i] == fd)
+			return true;
+	}
+
+	return m_clients.find(fd) != m_clients.end();
+}
+
+// Gère un événement epoll pour ce serveur
+void Server::handleEvent(int epfd, struct epoll_event ev, const std::vector<int>& allSocketFds) {
+	int fd = ev.data.fd;
+	(void) allSocketFds;
+
+	bool isServerSocket = false;
+	for (size_t i = 0; i < m_socketFd.size(); ++i) {
+		if (m_socketFd[i] == fd) {
+			isServerSocket = true;
+			break;
+		}
+	}
+	
+	if (isServerSocket) {
+		struct sockaddr_in client_addr;
+		socklen_t client_len = sizeof(client_addr);
+
+		int client_fd = accept(fd, (struct sockaddr*)&client_addr, &client_len);
+		if (client_fd < 0) {
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				return;
+			else if (errno == EINTR)
+				return;
+			else {
+				perror("accept failed");
+				return;
+			}
+		}
+		
+		int flags = fcntl(client_fd, F_GETFL, 0);
+		if (flags != -1)
+			fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+		
+		struct epoll_event client_ev;
+		client_ev.events = EPOLLIN;
+		client_ev.data.fd = client_fd;
+		if (epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &client_ev) < 0) {
+			perror("epoll_ctl add client failed");
+			close(client_fd);
+			return;
+		}
+		
+		m_clients[client_fd] = ClientState();
+		char ip_buffer[INET_ADDRSTRLEN];
+		if (inet_ntop(AF_INET, &client_addr.sin_addr, ip_buffer, sizeof(ip_buffer)))
+			m_clients[client_fd].client_ip = ip_buffer;
+		Logger::log(GREEN, "New client connected from %s on fd %d to server %s", ip_buffer, client_fd, m_serverName.c_str());
+	}
+	else {
+		if (recvClient(epfd, ev, fd)) {
+			std::string request = m_clients[fd].request_buffer;
+			if (!request.empty()) {
+				try {
+					Request req(*this, request, m_ep);
+					Response resp(req, fd, *this);
+					sendClient(resp, fd, epfd, ev);
+				} catch (const std::exception& e) {
+					Logger::log(RED, "Error processing request: %s", e.what());
+					Response resp;
+					resp.setErrorResponse(500);
+					sendClient(resp, fd, epfd, ev);
+				}
+			}
+			cleanupClient(epfd, fd, ev);
+		}
 	}
 }

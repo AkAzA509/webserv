@@ -587,7 +587,7 @@ void Response::buildResponse() {
 	else {
 		if (!m_request->getLocation().isAllowedMethod(m_request->getMethod()))
 			setErrorResponse(405);
-		else if (m_request->getPath().find("cgi-bin") != std::string::npos && m_request->getMethod() != "GET")
+		else if (m_request->getPath().find("cgi-bin") != std::string::npos)
 			prepareCgi();
 		else {
 			if (method == "GET")

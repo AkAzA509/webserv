@@ -1,0 +1,11 @@
+test multi server :
+
+curl -s -w "%{http_code}\n" -o /dev/null http://localhost:8080/ && 
+curl -s -w "%{http_code}\n" -o /dev/null http://127.0.0.1:8081/ &&
+curl -s -w "%{http_code}\n" -o /dev/null http://127.0.0.1:8082/ &&
+curl -s -w "%{http_code}\n" -o /dev/null http://127.0.0.1:8083/
+
+test methode inconnu 
+
+curl -s -w "%{http_code}\n" -o /dev/null -X UNKNOW http://localhost:8080/
+

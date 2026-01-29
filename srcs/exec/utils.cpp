@@ -166,6 +166,13 @@ std::vector<std::string> prepareCgiEnv(const Request& req, const std::string& sc
 	env.push_back("REQUEST_METHOD=" + req.getMethod());
 	env.push_back("PATH_INFO=" + reqPath);
 	env.push_back("SCRIPT_NAME=" + scriptName);
+	env.push_back("SERVER_NAME=" + req.getHeader("Host"));
+	env.push_back("SERVER_PROTOCOL=" + req.getHttpVersion());
+	env.push_back("HTTP_HOST=" + req.getHeader("Host"));
+	env.push_back("HTTP_USER_AGENT=" + req.getHeader("User-Agent"));
+	env.push_back("HTTP_ACCEPT=" + req.getHeader("Accept"));
+	env.push_back("CONTNT_LENGTH=" + req.getHeader("Content-Length"));
+	env.push_back("CONTENT_TYPE=" + req.getHeader("Content-Type"));
 
 	if (req.getMethod() == "GET") {
 		std::string::size_type qpos = reqPath.find('?');

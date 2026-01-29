@@ -218,6 +218,9 @@ class Server
 		void setSessionValue(const std::string& sessionId, const std::string& key, const std::string& value);
 		bool getSessionValue(const std::string& sessionId, const std::string& key, std::string& out) const;
 		void touchSession(const std::string& sessionId);
+		const std::vector<int>& getSocketFds() const { return m_socketFd; }
+		bool ownsFd(int fd) const;
+		void handleEvent(int epfd, struct epoll_event ev, const std::vector<int>& allSocketFds);
 	};
 	
 std::ostream& operator<<(std::ostream& o, const Location& loc);

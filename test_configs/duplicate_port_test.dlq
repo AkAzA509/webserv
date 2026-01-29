@@ -1,0 +1,18 @@
+server {
+	listen 8080;
+	listen 8080;
+	listen 8080;
+	listen 8081;
+	server_name duplicate_port_test;
+	host 127.0.0.1;
+	root ./file;
+	timeout_time 3000;
+	client_max_body_size 2000000;
+	index page/index.html;
+	error_page 404 error_pages/404.html;
+
+	location / {
+		allow_methods GET POST;
+		autoindex on;
+	}
+}

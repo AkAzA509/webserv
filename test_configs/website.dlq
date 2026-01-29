@@ -49,7 +49,7 @@ server {
 		autoindex off;
 		root ./file/cgi-bin;
 		allow_methods GET POST;
-		index change_color.sh;
+		index change_color.sh, info.sh;
 		cgi_pass /usr/bin/bash;
 		cgi_ext .sh;
 	}

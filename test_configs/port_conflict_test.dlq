@@ -1,0 +1,47 @@
+server {
+	listen 8080;
+	server_name server_conflict_1;
+	host 127.0.0.1;
+	root ./file;
+	timeout_time 3000;
+	client_max_body_size 2000000;
+	index page/index.html;
+	error_page 404 error_pages/404.html;
+
+	location / {
+		allow_methods GET POST;
+		autoindex on;
+	}
+}
+
+server {
+	listen 8080;
+	server_name server_conflict_2;
+	host 127.0.0.1;
+	root ./file;
+	timeout_time 2000;
+	client_max_body_size 1000000;
+	index page/index.html;
+	error_page 404 error_pages/404.html;
+
+	location / {
+		allow_methods GET;
+		autoindex off;
+	}
+}
+
+server {
+	listen 8081;
+	server_name server_no_conflict;
+	host 127.0.0.1;
+	root ./file;
+	timeout_time 1000;
+	client_max_body_size 500000;
+	index page/index.html;
+	error_page 404 error_pages/404.html;
+
+	location / {
+		allow_methods GET POST;
+		autoindex on;
+	}
+}
